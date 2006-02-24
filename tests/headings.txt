@@ -1,0 +1,12 @@
+= Headings =
+
+== Newline Terminated
+
+text text text text text
+
+== Explicitly Terminated ==
+text can follow without newline. text text text
+
+==[ Invisible Heading
+
+=Without separating space, the text is not recognized as a heading.=

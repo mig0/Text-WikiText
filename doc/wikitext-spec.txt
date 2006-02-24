@@ -1,0 +1,550 @@
+= Motivation =
+
+The key idea behind the Wiki Markup can be summarized as /Low
+Overhead/ and /Readability/ of the text source.
+
+For the writer, this means to keep the number of characters that do
+not make up the actual document text, to a reasonable minimum.  The
+markup "tags" generally require only one or two characters.
+
+The more important part though, is that the markup should be nearly
+invisible to the reader.  This is in part already accomplished by the
+very short and "intuitive" markup tags, but also requires a that
+whitespace is signigicant in certain situations.
+
+Trailing whitespace generally has no significance to the parser, but
+is retained in the output.  Leading whitespace is used only to measure
+paragraph indentation, and is removed from the output.
+
+
+
+= Overview =
+
+A document constists of three kinds of logical entities:
+
+  # paragraphs
+  # inline markup
+  # environment markup
+
+Inline markup changes the formatting of single words or groups of
+words inside paragraphs.  Environments change the formatting of the
+contained paragraphs, until the environment is changed again.
+
+The scope of environments is controlled by the level of identation of
+subsequent paragraphs.  The indentation of the paragraph is the
+indentation of the first character of the second line, for multiline
+paragraphs, or the first line, for single line paragraphs.
+
+Paragraphs contain only text, optionally with inline markup.
+Environments contain paragraphs and, in certain cases, other
+environments.  The document contains an implicit top-level
+environment, that contains all other paragraphs and environments in
+the document.
+
+Supported inline markup tags are emphasis, bold/strong, underline and
+hyperlink.  Supported environments are bullet, numbered and definition
+lists, headings and preformatted/code blocks.  Lists environments can
+contain other lists, preformatted blocks and ordinary paragraphs.
+Other environments are not allowed to nest.
+
+The generated HTML code is HTML 4.0 and XHTML 1.0 conformant.  HTML
+control characters are converted to their respective HTML entities.
+
+
+
+= Paragraphs =
+
+There are different types of paragraphs.  The type of each paragraph
+can be determined from its first line.
+
+
+== Ordinary Paragraphs ==
+
+The text in ordinary paragraphs is subject to markup substitution and
+automatic linebreaking.
+
+Oridnary paragraphs can optionally contain a paragraph heading.  If
+the first line of a paragraph contains two colons in a row ("::"), the
+text before is taken as a paragraph heading.
+
+Example::
+
+  | First simple paragraph.
+  |
+  | Heading::
+  | A lot of text in the second paragraph.
+
+Result::
+
+  {{
+    <div class="sample">
+      <p>First simple paragraph.</p>
+      <p><b>Heading</b><br />A lot of text in the second paragraph.</p>
+    </div>
+  }}
+
+== Preformatted Blocks ==
+
+Preformatted blocks are subject to markup and HTML entity
+substitution, but will preserve line breaks and are set in a
+typewriter font.
+
+Preformatted blocks start with a curly opening braces ("{"), followed
+by a space or line break, and ends with curly closing brace ("}"),
+followed by a line break, on a line with the same indentation as the
+opening brace.
+
+Contained lines must be indented at least as far as the opening brace.
+
+Example::
+
+  | {
+  |   Hi there!
+  |           ^-- *exclamation mark*
+  | }
+
+Result::
+
+  {{
+    <div class="sample">
+      <pre>
+      Hi there!
+              ^-- <strong>exclamation mark</strong>
+      </pre>
+    </div>
+  }}
+
+== Verbatim Blocks ==
+
+Verbatim blocks are neither subject to markup replacement, nor to HTML
+entity replacement.  The complete block is copied verbatim to the
+output.
+
+Verbatim blocks start with two curly opening braces ("{{"), followend
+by a space or line break, and end with two curly closing braces
+("}}"), followed by a line break, on a line with the same indentation
+as the opening braces.
+
+Contained lines must be indented at least as far as the opening
+braces.
+
+Example::
+
+  | {{
+  |   <address>Me, Myself and I, no@whe.re</address>
+  | }}
+
+Result::
+
+  {{
+    <div class="sample">
+      <address>Me, Myself and I, no@whe.re</address>
+    </div>
+  }}
+
+
+== Code Blocks ==
+
+Code blocks are not subject to automatic line breaking or markup
+substitution, and are set in a typewriter font.  Every markup
+character will be copied verbatim to the output.  Only HTML entity
+subsitution takes place.
+
+Code blocks are indented with vertical bars ("|") or exclamation marks
+("!").  The indentation can be omitted if the text block is introduced
+by "(code)" and terminated by "(end)", each on a line by itself.
+
+If the following paragraphs are indented, the control character is
+only mandatory on the first line.
+
+The first line of a code block may not end with another vertical bar,
+or it might be confused with a table.
+
+*Extra Brownie Points* if the converter allows the specification of a
+language indentifier for syntax highlighting "(code)" markup.
+
+Example::
+
+  | | +------+
+  | | | w00t |
+  | | +------+
+  |
+  | (c code)
+  | int main(int argc, char** argv) {
+  |   return 0;
+  | }
+  | (end)
+
+
+Result::
+
+  {{
+    <div class="sample">
+    <pre>
+    +------+
+    | w00t |
+    +------+
+    </pre>
+     
+    <pre>
+    <span class="keyword">int</span> main(...) {
+       <span class="keyword">return</span> 0;
+    }
+    </pre>
+    </div>
+  }}
+
+
+== Tables ==
+
+Tabular material is written as a paragraph delimited by vertical bars
+("|") on /both/ sides.  Every line of the paragraph forms a row of the
+table.  Columns are separated by additional vertical bars.  Two or
+more subsequent vertical bars indicate a table cell spanning over
+multiple columns.  Cells spanning over multiple rows are not
+supported.
+
+The table can optionally include separator lines, delimited by plus
+characters ("+") instead of vertical bars.  Leading and trailing
+separator lines are discarded entirely.  Separator lines inside the
+table mark the previous row as a table heading.  The separator line
+itself is discarded.
+
+Example::
+
+  | +---------------+---------+
+  | | Effect        | Example |
+  | +---------------+---------+
+  | | Emphasis      | /words/ |
+  | | Strong        | *words* |
+  | | Typewriter    | {words} |
+  | | Underline     | _words_ |
+  | | Strikethrough | -words- |
+  | +---------------+---------+
+
+Result::
+
+  {{
+    <div class="sample">
+      <table>
+        <tr><th>Effect</th><th>Markup</th></tr>
+        <tr><td>Emphasis</td><td><em>words</em></td></tr>
+        <tr><td>Strong</td><td><strong>words</strong></td></tr>
+        <tr><td>Typewriter</td><td><tt>words</tt></td></tr>
+        <tr><td>Underline</td><td><u>words</u></td></tr>
+        <tr><td>Strikethrough</td><td><strike>words</strike></td></tr>
+      </table>
+    </div>
+  }}
+
+
+== Horizontal Rules ==
+
+A paragraph consisting of a single line of two or more dashes ("-"),
+generates a horizontal rule.
+
+Example::
+
+  | ---
+
+Result::
+
+  {{
+    <div class="sample">
+      <hr />
+    </div>
+  }}
+
+
+== Comments ==
+
+Comments are introduced by "(comment)" on a line by itself, and end
+with "(end)" on a line by itself.  Comments are skipped completely
+when converting to html.
+
+Example::
+
+  | (comment)
+  | business secret in here
+  | (end)
+
+
+
+= Inline Markup =
+
+== Text Formatting ==
+
+Text formatting tags must enclose the formatted text without
+intermediate whitespace.  The opening character must be preceded by
+whitespace, an opening senctence character ("(", "¿", etc) or the
+beginning-of-paragraph, the closing character must be followed by
+whitespace, a closing sentence character (".", "!", "?", ",", ":",
+";", etc) or the end-of-paragraph.
+
+Valid inline formatting tags are "/" for emphasis, "*" for strong, "_"
+for underline, "-" for strikethrough, and "{}" for typewriter font.
+
+Conformance Note:: Underline and strikethrough tags are not allowed in
+the strict variants of HTML.
+
+Example::
+
+  | A -big- /small/ sample paragraph with *simple* text _formatting_
+  | and a bit of {typewriter} font.
+
+Result::
+
+  {{
+    <div class="sample">
+      <p>A <strike>big</strike> <em>small</em> sample paragraph with
+      <strong>simple</strong> text <u>formatting</u> and a bit of
+      <tt>typewriter</tt> font.</p>
+    </div>
+  }}
+
+
+== Links ==
+
+Links are generated with the "[target]" syntax.  A link can point to
+other sections in the same document (see also [Headings]), external
+objects, and images.  A heuristic decides how the link is generated.
+
+If the heuristic goes wrong, the link type can be set explicitly by
+adding a control character after the opening bracket.  The "[>url]"
+syntax indicates an external link, "[#section]" indicates an internal
+link, and "[=image]" includes the image directly.
+
+A link or image description can be specified by adding a horizontal
+bar ("|") and the description after the link target.  If no link
+description is given, the target will be used.
+
+Incomplete link targets are automatically completed by adding
+"http://" or "mailto:".
+
+Example::
+
+  | This is a simple [http://nowhere.org/|link].  Another link to
+  | [google.com].
+
+Result::
+
+  {{
+    <div class="sample">
+      This is a simple <a href="http://nowhere.org/">link</a>.  Another
+      link to <a href="http://google.com/">google.com</a>.
+    </div>
+  }}
+
+
+== Verbatim Content ==
+
+A section of text enclosed in a double pair of curly braces is copied
+verbatim to the output, without replacing markup or HTML control
+characters.
+
+Example::
+
+  | <em>substituted</em> and {{<em>verbatim *stuff*</em>}}
+
+Result::
+
+  {{
+    <div class="sample">
+      &lt;em&gt;substituted&lt;/em&gt; and <em>verbatim *stuff*</em>
+    </div>
+  }}
+
+
+= Environments =
+
+Environment markup is only recognized at the beginning of a new
+paragraph.  The environment markup must be separated from the
+paragraph text by at least one space.  This is necessary to
+disambiguate certain environments from inline markup, and is required
+for other environments for consistency.
+
+List markup is handled a bit differently to faciliate compact lists of
+short items. If the previous paragraph was part of a list environment
+of the same type, the paragraph separating empty line may be omitted.
+
+Example::
+
+  | * item 1
+  | * item 2
+  | * item 3
+
+
+== Headings ==
+
+Headings consist of a single paragraph, beginning with one or more
+equal-signs ("=") and ending with an empty line, or the same number of
+equal-signs at the end of a line.
+
+Headings automatically include an anchor that you can link to, using
+the heading as link target. Also see section [Links].
+
+An invisible heading, that only generates an anchor, is formed by
+adding square brackets ("[]") to the inside of the delimiting equal
+signs.
+
+*Extra Brownie Points* if the converter allows to specify an initial
+heading level offset.
+
+Example::
+
+  | = heading level 1 =
+  |
+  | == heading level 2 ==
+  |
+  | ==[ only an anchor ]==
+
+Result::
+
+  {{
+    <div class="sample">
+      <h1><a name="heading_level_1">heading level 1</a></h1>
+      <h2><a name="heading_level_2">heading level 2</a></h2>
+      <a name="only_an_anchor"></a>
+    </div>
+  }}
+
+== Quotations ==
+
+A paragraph starting with a greater-than sign (">") introduces a
+quotation.  Subsequent paragraphs belong to the same item as long as
+they don't introduce another environment and are indented (at least)
+as far as the starting paragraph.
+
+Quotations can contain all types of paragraphs and other environments.
+
+Contrasting to other environments, the markup character can be
+repeated on every line of the quoted text.
+
+Example::
+
+  | > A language that doesn't affect the way you think about
+  | > programming, is not worth knowing.
+  |
+  | -- Alan Perlis
+
+Result::
+
+  {{
+    <div class="sample">
+      <blockquote><p>A language that doesn't affect the way you think
+      about programming, is not worth knowing.</p></blockquote>
+     
+      <p>-- Alan Perlis</p>
+    </div>
+  }}
+
+
+== Bullet Lists ==
+
+A paragraph starting with an asterisk ("*"), a dash ("-") or a small O
+("o"), followed by a space or line break, starts a new bullet list
+item.  Subsequent paragraphs belong to the same item as long as they
+don't introduce another environment and are indented (at least) as far
+as the starting paragraph.
+
+Two bullet list paragraphs that both introduce a new list item, do not
+need to be separated by two line breaks in a row.
+
+All item in a bullet list must use the same bullet character.
+
+Example::
+
+  | * item 1
+  | * item 2
+  | * item 3
+  |
+  |   still item 3
+
+Result::
+
+  {{
+    <div class="sample">
+      <ul>
+        <li><p>item 1</p></li>
+        <li><p>item 2</p></li>
+        <li><p>item 3</p><p>still item 3</p></li>
+      </ul>
+    </div>
+  }}
+
+
+== Numbered Lists ==
+
+A paragraph starting with a hash mark ("#") followed by a space or
+line break, starts a new numbered list item.  Subsequent paragraphs
+belong to the same item as long as they don't introduce another
+environment and are indented (at least) as far as the starting
+paragraph.
+
+Two numbered list paragraphs that both introduce a new list item, do
+not need to be separated by two line breaks in a row.
+
+Example::
+
+  | # item 1
+  | # item 2
+  |   some more text
+  | # item 3
+  |
+  |   with even more text
+
+Result::
+
+  {{
+    <div class="sample">
+      <ol>
+        <li><p>item 1</p></li>
+        <li><p>item 2 some more text</p></li>
+        <li><p>item 3</p><p>with even more text</p></li>
+      </ol>
+    </div>
+  }}
+
+
+*Extra Brownie Points* if the parser can handle digits followed by ")"
+or "." as control.
+
+  | 1) abc
+  | 2) xyz
+
+
+== Definition Lists ==
+
+A paragraph starting with a colon (":") starts a new definition list
+item.  The term and the definition text are separated by another
+colon, followed by a space or linebreak.  Subsequent paragraphs belong
+to the same item as long as they don't introduce another environment
+and are indented (at least) as far as the starting paragraph.
+
+Two definition list paragraphs that both introduce a new list item, do
+not need to be separated by two line breaks in a row.
+
+Example::
+
+  | :some words: definition
+  | :other words: a longer
+  |   definition
+  | :a very long term:
+  |   definition begins here
+  |
+  |   with a second paragraph
+
+Result::
+
+  {{
+    <div class="sample">
+      <dl>
+        <dt>some words</dt>
+        <dd><p>definition</p></dd>
+        <dt>other words</dt>
+        <dd><p>a longer definition</p></dd>
+        <dt>a very long term</dt>
+        <dd><p>definitition begins here</p><p>with a second paragraph</p></dd>
+      </dl>
+    </div>
+  }}
