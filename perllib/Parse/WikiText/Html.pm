@@ -4,6 +4,74 @@ package Parse::WikiText::Html;
 
 use Parse::WikiText ':types';
 
+my %table = (
+    '&' => '&amp;',
+    '<' => '&lt;',
+    '>' => '&gt;',
+    '"' => '&quot;',
+);
+
+sub escape {
+    my $text = shift;
+
+    $text =~ s/[&<>\"]/$table{$&}/eg;
+
+    return $text;
+}
+
+sub dump_text {
+    my ($self, $text, %opts) = @_;
+
+    my $str = '';
+    foreach my $chunk (@$text) {
+        if ($chunk->{type} eq VERBATIM) {
+            $str .= $chunk->{text};
+
+        } elsif ($chunk->{type} eq TEXT) {
+            $str .= escape($chunk->{text});
+
+        } elsif ($chunk->{type} eq EMPHASIS) {
+            $str .= '<em>' . escape($chunk->{text}) . '</em>';
+
+        } elsif ($chunk->{type} eq STRONG) {
+            $str .= '<strong>' . escape($chunk->{text}) . '</strong>';
+
+        } elsif ($chunk->{type} eq UNDERLINE) {
+            $str .= '<u>' . escape($chunk->{text}) . '</u>';
+
+        } elsif ($chunk->{type} eq STRIKE) {
+            $str .= '<strike>' . escape($chunk->{text}) . '</strike>';
+
+        } elsif ($chunk->{type} eq TYPEWRITER) {
+            $str .= '<tt>' . escape($chunk->{text}) . '</tt>';
+
+        } elsif ($chunk->{type} eq LINK) {
+            if ($chunk->{style} eq '>') {
+                $str .= '<a href="' . $chunk->{target} . '">' 
+                    . escape($chunk->{label}) 
+                    . '</a>';
+
+            } elsif ($chunk->{style} eq '=') {
+                $str .= '<img src="' . $chunk->{target}
+                . '" alt="' . $chunk->{label} . '" />';
+
+            } elsif ($chunk->{style} eq '#') {
+                $str .= '<a href="#' . $chunk->{target} . '">' 
+                    . escape($chunk->{label}) 
+                    . '</a>';
+
+            } else {
+                warn("Unrecognized link style '" . $chunk->{style} . "'.\n");
+            }
+
+        } else {
+            warn("Unrecognized text markup '" . $chunk->{type} . "'.\n");
+        }
+    }
+
+    return $str;
+}
+
 sub dump_paragraph {
     my ($self, $para, %opts) = @_;
 
@@ -17,9 +85,9 @@ sub dump_paragraph {
         $text .= $h;
     }
 
-    $text .= $para->{text};
+    $text .= $self->dump_text($para->{text}, %opts);
     $text =~ s/[\r\n]+$//;
-    $text .= "</p>\n";
+    $text .= "</p>";
     
     return $text;
 }
@@ -30,7 +98,7 @@ sub dump_code {
     my $text .= $code->{text};
     $text =~ s/[\r\n]+$//;
 
-    return "<code><pre>" . $text . "</pre></code>\n";
+    return "<code><pre>" . $text . "</pre></code>";
 }
 
 sub dump_preformatted {
@@ -39,7 +107,7 @@ sub dump_preformatted {
     my $text .= $pre->{text};
     $text =~ s/[\r\n]+$//;
 
-    return "<pre>" . $text . "</pre>\n";
+    return "<pre>" . $self->dump_text($pre->{text}) . "</pre>";
 }
 
 sub dump_verbatim {
@@ -51,38 +119,50 @@ sub dump_verbatim {
 sub dump_rule {
     my ($self, $verb, %opts) = @_;
 
-    return "<hr />\n";
+    return "<hr />";
 }
 
 sub dump_quotation {
     my ($self, $quote, %opts) = @_;
 
-    return "<quote>\n" . $self->dump($quote->{content}, %opts) . "</quote>\n"
+    return "<blockquote>\n" . $self->dump($quote->{content}, %opts) . "\n</blockquote>"
 }
 
 sub dump_listing {
     my ($self, $listing, %opts) = @_;
 
-    return "<ul>\n" . join("", map { "<li>" . $self->dump($_, %opts) . "</li>" } @{$listing->{items}}) . "</ul>\n";
+    return "<ul>\n"
+        . join("", map {
+            "<li>" . $self->dump($_, %opts) . "</li>\n"
+            } @{$listing->{content}})
+        . "</ul>";
 }
 
 sub dump_enumeration {
     my ($self, $enum, %opts) = @_;
 
-    return "<ol>\n" . join("", map { "<li>" . $self->dump($_, %opts) . "</li>" } @{$enum->{items}}) . "</ol>\n";
+    return "<ol>\n"
+        . join("", map {
+            "<li>" . $self->dump($_, %opts) . "</li>\n"
+            } @{$enum->{content}})
+        . "</ol>";
 }
 
 sub dump_description {
     my ($self, $descr, %opts) = @_;
 
-    return "<dl>\n" . join("", map { "<dt>$_->[0]</dt><dd>" . $self->dump($_->[1], %opts) . "</dd>" } @{$descr->{items}}) . "</dl>\n";
+    return "<dl>\n"
+        . join("\n", map {
+            "<dt>$_->[0]</dt>\n<dd>" . $self->dump($_->[1], %opts) . "</dd>\n"
+            } @{$descr->{content}})
+        . "</dl>";
 }
 
-sub dump_heading {
+sub dump_section {
     my ($self, $heading, %opts) = @_;
 
     my $level = $heading->{level};
-    my $label = $heading->{text};
+    my $label = $heading->{heading};
 
     my $anchor = $label;
     $anchor =~ s/\s+$//;
@@ -101,25 +181,25 @@ sub dump {
     my @list;
 
     foreach my $sect (@$list) {
-        if ($sect->{type} eq H) {
-            push @list, $self->dump_heading($sect, %opts);
+        if ($sect->{type} eq SECTION) {
+            push @list, $self->dump_section($sect, %opts);
 
-        } elsif ($sect->{type} eq DL) {
+        } elsif ($sect->{type} eq DESCRIPTION) {
             push @list, $self->dump_description($sect, %opts);
 
-        } elsif ($sect->{type} eq OL) {
+        } elsif ($sect->{type} eq ENUMERATION) {
             push @list, $self->dump_enumeration($sect, %opts);
 
-        } elsif ($sect->{type} eq UL) {
+        } elsif ($sect->{type} eq LISTING) {
             push @list, $self->dump_listing($sect, %opts);
 
         } elsif ($sect->{type} eq QUOTE) {
             push @list, $self->dump_quotation($sect, %opts);
 
-        } elsif ($sect->{type} eq HR) {
+        } elsif ($sect->{type} eq RULE) {
             push @list, $self->dump_rule($sect, %opts);
 
-        } elsif ($sect->{type} eq VERB) {
+        } elsif ($sect->{type} eq VERBATIM) {
             push @list, $self->dump_verbatim($sect, %opts);
 
         } elsif ($sect->{type} eq PRE) {
@@ -143,7 +223,7 @@ sub dump {
         }
     }
 
-    return join "\n", @list;
+    return join "\n\n", @list;
 }
 
 1;

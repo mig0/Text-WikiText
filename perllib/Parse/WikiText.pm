@@ -1,9 +1,8 @@
 use strict;
 
 # TODO: early paragraph termination (req no empty line between items of lists)
-# TODO: paragraph parser (inline markup)
-# TODO: invisible headings (=+\[)
-# TODO: single line heading?
+# TODO: link heuristic (section table, file types, host regex, etc)
+# TODO: table parser
 
 package Parse::WikiText;
 
@@ -11,98 +10,276 @@ use vars qw($VERSION @EXPORT @EXPORT_OK %EXPORT_TAGS);
 $VERSION = 0.1;
 
 use constant {
-    P        => 'paragraph',
-    PRE      => 'preformatted',
-    CODE     => 'code',
-    VERB     => 'verbatim',
-    HR       => 'horizontal rule',
-    QUOTE    => 'quotation',
-    UL       => 'listing',
-    OL       => 'enumeration',
-    DL       => 'description',
-    H        => 'heading',
-    COMMENT  => 'comment',
+    COMMENT     => 'comment',
+    VERBATIM    => 'verbatim',
+
+    SECTION     => 'section',
+
+    QUOTE       => 'quotation',
+    LISTING     => 'listing',
+    ENUMERATION => 'enumeration',
+    DESCRIPTION => 'description',
+
+    RULE        => 'horizontal rule',
+    P           => 'paragraph',
+    PRE         => 'preformatted',
+    CODE        => 'code',
+
+    EMPHASIS    => 'emphasis',
+    STRONG      => 'strong',
+    UNDERLINE   => 'underline',
+    STRIKE      => 'strike',
+    TYPEWRITER  => 'typewriter',
+    LINK        => 'link',
+
+    TEXT        => 'normal text',
 };
 
 use Exporter 'import';
 
 @EXPORT = qw();
-@EXPORT_OK = qw(P PRE CODE VERB HR QUOTE UL OL DL H COMMENT);
+@EXPORT_OK = qw(
+    COMMENT VERBATIM
+    SECTION QUOTE LISTING ENUMERATION DESCRIPTION
+    RULE P PRE CODE
+    EMPHASIS STRONG UNDERLINE STRIKE TYPEWRITER LINK
+    TEXT
+);
 %EXPORT_TAGS = (
-    types => [qw(P PRE CODE VERB HR QUOTE UL OL DL H COMMENT)],
+    generic     => [qw(COMMENT VERBATIM)],
+    environment => [qw(SECTION QUOTE LISTING ENUMERATION DESCRIPTION)],
+    paragraphs  => [qw(RULE P PRE CODE)],
+    inline      => [qw(EMPHASIS STRONG UNDERLINE STRIKE TYPEWRITER LINK TEXT)],
+    types       => [qw(
+        COMMENT VERBATIM
+        SECTION QUOTE LISTING ENUMERATION DESCRIPTION
+        RULE P PRE CODE
+        EMPHASIS STRONG UNDERLINE STRIKE TYPEWRITER LINK
+        TEXT
+    )],
 );
 
+my $RE_INLINE_PRE = qr/[\s(]/;
+my $RE_INLINE_POST = qr/[ .!?,:;)]|$/;
+my $RE_TLD = qr/
+    com|org|net|edu|gov|mil
+    |ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|az|ax
+    |ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz
+    |ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz
+    |de|dj|dk|dm|do|dz
+    |ec|ee|eg|eh|er|es|et|eu
+    |fi|fj|fk|fm|fo|fr
+    |ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy
+    |hk|hm|hn|hr|ht|hu
+    |id|ie|il|im|in|io|iq|ir|is|it
+    |je|jm|jo|jp
+    |ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz
+    |la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly
+    |ma|mc|md|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz
+    |na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz
+    |om
+    |pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py
+    |qa
+    |re|ro|ru|rw
+    |sa|sb|sc|sd|se|sg|sh|si|sj|sk|sl|sm|sn|so|sr|st|sv|sy|sz
+    |tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz
+    |ua|ug|uk|um|us|uy|uz
+    |va|vc|ve|vg|vi|vn|vu
+    |wf|ws
+    |ye|yt|yu
+    |za|zm|zw
+/x;
 
-my %RE = (
-    p => {
-        open   => qr/(.+?::\n?)?/,
+my %DEFAULT_INLINE_RE = (
+    EMPHASIS() => {
+        open   => qr/\//,
+        close  => qr/\//,
+    },
+
+    STRONG() => {
+        open   => qr/\*/,
+        close  => qr/\*/,
+    },
+
+    UNDERLINE() => {
+        open   => qr/_/,
+        close  => qr/_/,
+    },
+
+    STRIKE() => {
+        open   => qr/-/,
+        close  => qr/-/,
+    },
+
+    TYPEWRITER() => {
+        open   => qr/{/,
+        close  => qr/}/,
+    },
+
+    VERBATIM() => {
+        open   => qr/{{/,
+        close  => qr/}}/,
+        code   => sub {
+            my ($self, $type, $text) = @_;
+            return { type => VERBATIM, text => $text };
+        },
+    },
+
+    LINK() => {
+        open   => qr/\[[>=\#]?/,
+        close  => qr/\]/,
+        code   => sub {
+            my ($self, $type, $text, $match) = @_;
+
+            (my $style = $match) =~ s/^\[//;
+            my ($target, $label) = split /\|/, $text;
+
+            if ($style eq '') {
+                # bitmap files
+                if ($target =~ /\.(png|jpg|jpeg|gif)$/) {
+                    $style = '=';
+
+                # network protocols
+                } elsif ($target =~ /^(http|ftp|news|mailto|irc):/) {
+                    $style = '>';
+
+                # common top level domains
+                } elsif ($target =~ /^(\w+\.){1,}$RE_TLD/) {
+                    $style = '>';
+
+                # whitespace in urls is bad
+                } elsif ($target =~ /\s/) {
+                    $style = '#';
+
+                # fallback
+                } else {
+                    $style = '>';
+                }
+            }
+
+            $label ||= $target;
+
+            # outside link, without protocol and no directory identifier
+            if ($style eq '>' && $target !~ /^\w+:/ && $target !~ m,^(/|\.),) {
+                if ($target =~ /@/) {
+                    $target = "mailto:" . $target;
+
+                } elsif ($target =~ /^www\./) {
+                    $target = "http://" . $target;
+
+                } elsif ($target =~ /^ftp\./) {
+                    $target = "ftp://" . $target;
+
+                } elsif ($target =~ /^(\w+\.){1,}$RE_TLD/) {
+                    $target = "http://" . $target;
+                }
+
+                if ($target =~ /\.$RE_TLD$/) {
+                    $target .= '/';
+                }
+            }
+
+            return {
+                type  => LINK,
+                label => $label,
+                target => $target,
+                style => $style,
+            };
+        },
+    },
+);
+
+my %DEFAULT_PARA_RE = (
+    P() => {
+        open   => qr/(?:.+?::\s)?/,
         close  => undef,
         filter => undef,
+        code   => sub {
+            my ($self, $type, $text, $match) = @_;
+            $match =~ s/:://;
+
+            my $p = {
+                type => P,
+                text => $self->parse_paragraph($text)
+            };
+
+            $p->{heading} = $match
+                if $match;
+
+            return $p;
+        },
     },
 
-    pre => {
+    PRE() => {
         open   => qr/{\s/,
-        close  => qr/(^|\s)}/,
+        close  => qr/(?:^|\s)}/,
         filter => undef,
+        code   => sub {
+            my ($self, $type, $text) = @_;
+            return { type => PRE, text => $self->parse_paragraph($text) };
+        },
     },
 
-    code => {
+    CODE() => {
         open   => qr/\|\s/,
         close  => undef,
         filter => qr/\|\s/,
     },
 
-    verb => {
+    VERBATIM() => {
         open   => qr/{{\s/,
-        close  => qr/(^|\s)}}/,
+        close  => qr/(?:^|\s)}}/,
         filter => undef,
     },
 
-    hr => {
+    RULE() => {
         open   => qr/-{3,}\n/,
-        close  => undef,
+        close  => qr//,
         filter => undef,
-    },
-
-    special => {
-        open   => qr/\([a-zA-Z0-9 _-]+\)\n/,
-        close  => qr/\(end\)/,
-        filter => undef,
-    },
-
-    quote => {
-        open   => qr/>\s/,
-        close  => undef,
-        filter => qr/>\s/,
-    },
-
-    ul => {
-        open   => qr/[*o-]\s/,
-        close  => undef,
-        filter => undef,
-    },
-
-    ol => {
-        open   => qr/(\d+[.)]|\#)\s/,
-        close  => undef,
-        filter => undef,
-    },
-
-    dl => {
-        open   => qr/:.+?:\s/,
-        close  => undef,
-        filter => undef,
-    },
-
-    h => {
-        open   => qr/=+\[?\s/,
-        close  => qr/(^|\s)\]?=+|^\n$/,
-        filter => undef,
+        code   => sub {
+            return { type => RULE };
+        },
     },
 );
 
-my $RE_ALL_ENV =
-    qr/$RE{quote}{open}|$RE{ul}{open}|$RE{ol}{open}|$RE{dl}{open}|$RE{h}{open}/;
+my %DEFAULT_ENVIRONMENT_RE = (
+    QUOTE() => {
+        open   => qr/>\s/,
+        close  => undef,
+        filter => qr/>\s|\s\s/,
+    },
+
+    LISTING() => {
+        open   => qr/[*o-]\s/,
+        close  => undef,
+        filter => undef,
+        merge  => 1,
+    },
+
+    ENUMERATION() => {
+        open   => qr/(?:\d+[.)]|\#)\s/,
+        close  => undef,
+        filter => undef,
+        merge  => 1,
+    },
+
+    DESCRIPTION() => {
+        open   => qr/:.+?:\s/,
+        close  => undef,
+        filter => undef,
+        merge  => 1,
+        code   => sub {
+            my ($self, $type, $content, $match) = @_;
+            $match =~ s/^:|:\s$//g;
+            return [ $match, $content ];
+        },
+    },
+);
+
+my %DEFAULT_SECTION_RE = (
+    open   => qr/=+\[?\s/,
+    close  => qr/(?:^|\s)\]?=+|^$/,
+);
 
 use Parse::WikiText::InputFilter;
 
@@ -116,10 +293,54 @@ sub new {
     return bless $self, $class;
 }
 
+sub parse_paragraph {
+    my ($self, $text) = @_;
+
+    my @list;
+
+    while (length $text) {
+        my $elem = undef;
+
+        foreach my $type (keys %DEFAULT_INLINE_RE) {
+            my $def = $DEFAULT_INLINE_RE{$type};
+
+            if ($text =~ s/
+                ^($def->{open})       # opening markup
+                (\S|\S.*?\S)          # content (no leading or trailing ws)
+                ($def->{close})       # closing markup
+                (?=$RE_INLINE_POST)   # followed by sentence char or ws
+            //xs) {
+                $elem = exists $def->{code}
+                    ? $def->{code}->($self, $type, $2, $1, $3)
+                    : { type => $type, text => $2 };
+                last;
+            }
+        }
+
+        if (! defined $elem) {
+            if ($text =~ s/^(.*?($RE_INLINE_PRE)+)//s) {
+                $elem = { type => TEXT, text => $& };
+            } else {
+                $elem = { type => TEXT, text => $text };
+                $text = '';
+            }
+        }
+
+        if (@list && $list[-1]->{type} eq TEXT && $elem->{type} eq TEXT) {
+            $list[-1]->{text} .= $elem->{text};
+        } else {
+            push @list, $elem;
+        }
+    }
+
+    return \@list;
+}
+
 sub parse_parlike {
     my ($self, $input, $filter, $break) = @_;
 
     my $para = '';
+    my $first = 1;
     my $last;
 
     $input->push_filter($filter || qr//);
@@ -127,10 +348,12 @@ sub parse_parlike {
     while (defined ($_ = $input->peek)) {
         $last = defined $break
             ? s/$break\n?$//
-            : s/^\n//;
+            : s/^\n?$// && !$first;
 
         $para .= $_;
         $input->commit;
+
+        $first = 0;
 
         last if $last;
     }
@@ -146,53 +369,50 @@ sub parse_parlike {
 sub parse_atom {
     my ($self, $input) = @_;
 
-    my $atom = { line => $input->line };
+    my $line = $input->line;
+    my $atom = undef;
 
     # (foo) specials (end)
-    if ($input->match($RE{special}{open})) {
-        (my $type = $input->last_match) =~ s/^\(\s*(begin )?|\s*\)\s*$//g;
+    if ($input->match(qr/\((begin\s+)?[\w ]+\)\n/)) {
+        my $match = $input->last_match;
+        (my $type = $match) =~ s/^\((begin\s+)?|\s*\)\n//g;
 
-        $atom->{type} = $type;
-        $atom->{text} =
-            $self->parse_parlike($input, $RE{special}{filter}, $RE{special}{close});
+        my $text =
+            $self->parse_parlike($input, undef, qr/\(end(\s+\Q$type\E)?\)/);
 
-    # --- hr
-    } elsif ($input->match($RE{hr}{open})) {
-        $atom->{type} = HR;
-        $input->commit;
+        $atom = exists $DEFAULT_PARA_RE{$type} && exists $DEFAULT_PARA_RE{$type}{code}
+            ? $DEFAULT_PARA_RE{$type}->{code}->($self, $type, $text, $match)
+            : { type => $type, text => $text };
 
-    # {{ verbatim }}
-    } elsif ($input->match($RE{verb}{open})) {
-        $atom->{type} = VERB;
-        $atom->{text} =
-            $self->parse_parlike($input, $RE{verb}{filter}, $RE{verb}{close});
+    } else {
+        foreach my $type (keys %DEFAULT_PARA_RE) {
+            my $def = $DEFAULT_PARA_RE{$type};
 
-    # { pre }
-    } elsif ($input->match($RE{pre}{open})) {
-        $atom->{type} = PRE;
-        $atom->{text} =
-            $self->parse_parlike($input, $RE{pre}{filter}, $RE{pre}{close});
+            if ($input->match($def->{open})) {
+                my $match = $input->last_match;
+                my $text = $self->parse_parlike(
+                    $input, $def->{filter}, $def->{close}
+                );
 
-    # | code
-    } elsif ($input->match($RE{code}{open})) {
-        $atom->{type} = CODE;
-        $atom->{text} =
-            $self->parse_parlike($input, $RE{code}{filter}, $RE{code}{close});
-
-    # paragraph
-    } elsif ($input->match($RE{p}{open})) {
-        (my $heading = $input->last_match) =~ s/:://;
-
-        $atom->{type} = P;
-        $atom->{heading} = $heading unless $heading =~ /^\s*$/;
-        $atom->{text} =
-            $self->parse_parlike($input, $RE{p}{filter}, $RE{p}{close});
+                $atom = exists $def->{code}
+                    ? $def->{code}->($self, $type, $text, $match)
+                    : { type => $type, text => $text };
+                last;
+            }
+        }
     }
 
-    $input->flush_empty;
+    if (defined $atom) {
+        $atom->{line} = $line;
+        $input->flush_empty;
+    }
 
     return $atom;
 }
+
+
+my $RE_ALL_ENV =
+    eval "qr/" . (join "|", map { $_->{open} } values %DEFAULT_ENVIRONMENT_RE) . "|" . $DEFAULT_SECTION_RE{open} . "/";
 
 sub parse_block_list {
     my ($self, $input, $filter, $break) = @_;
@@ -203,7 +423,7 @@ sub parse_block_list {
     $input->push_filter($filter || qr//);
 
     while (defined ($_ = $input->peek)) {
-        last if /^$RE_ALL_ENV/;
+        last if !defined $filter && /^$RE_ALL_ENV/;
         $last = defined $break && s/$break\n?$//;
 
         push @list, $self->parse_block($input);
@@ -219,55 +439,48 @@ sub parse_block_list {
 sub parse_block {
     my ($self, $input) = @_;
 
-    my $block = { line => $input->line };
+    my $block = undef;
 
-    # > quotation
-    if ($input->match($RE{quote}{open})) {
-        $block->{type} = QUOTE;
-        $block->{content} =
-            $self->parse_block_list($input, $RE{quote}{filter}, $RE{quote}{close});
+    foreach my $type (keys %DEFAULT_ENVIRONMENT_RE) {
+        my $def = $DEFAULT_ENVIRONMENT_RE{$type};
 
-    # */-/o listing
-    } elsif ($input->match($RE{ul}{open})) {
-        my $open = $input->last_match;
+        if ($input->match($def->{open})) {
+            my $match = $input->last_match;
 
-        $block->{type} = UL;
-        $block->{items} = [];
+            if ($def->{merge}) {
+                my $elements = [];
 
-        do {
-            push
-                @{$block->{items}},
-                $self->parse_block_list($input, $RE{ul}{filter}, $RE{ul}{close});
-        } while ($input->match(qr/\Q$open\E/));
+                do {
+                    my $content = $self->parse_block_list(
+                        $input, $def->{filter}, $def->{close}
+                    );
 
-    # # enumeration
-    } elsif ($input->match($RE{ul}{open})) {
-        my $open = $input->last_match;
+                    my $elem = exists $def->{code}
+                        ? $def->{code}->($self, $type, $content, $match)
+                        : $content;
 
-        $block->{type} = OL;
-        $block->{items} = [];
+                    push @$elements, $elem;
+                } while ($input->match($def->{open}));
 
-        do {
-            push
-                @{$block->{items}},
-                $self->parse_block_list($input, $RE{ol}{filter}, $RE{ol}{close});
-        } while ($input->match(qr/\Q$open\E/));
+                $block = exists $def->{merge_code}
+                    ? $def->{merge_code}->($self, $type, $elements)
+                    : { type => $type, content => $elements };
 
-    # :term: definition list
-    } elsif ($input->match($RE{dl}{open})) {
-        $block->{type} = DL;
-        $block->{items} = [];
+            } else {
+                my $content = $self->parse_block_list(
+                    $input, $def->{filter}, $def->{close}
+                );
 
-        do {
-            my $term = $input->last_match;
-            $term =~ s/^:|:\s$//g;
+                $block = exists $def->{code}
+                    ? $def->{code}->($self, $type, $content, $match)
+                    : { type => $type, content => $content };
+            }
 
-            push
-                @{$block->{items}},
-                [ $term, $self->parse_block_list($input, $RE{dl}{filter}, $RE{dl}{close}) ];
-        } while ($input->match($RE{dl}{open}));
+            last;
+        }
+    }
 
-    } else {
+    if (! defined $block) {
         $block = $self->parse_atom($input);
     }
 
@@ -275,7 +488,7 @@ sub parse_block {
 }
 
 sub parse_struct_list {
-    my ($self, $input, $filter, $break, $level) = @_;
+    my ($self, $input, $filter, $break) = @_;
 
     my  @list = ();
     my $last;
@@ -283,7 +496,7 @@ sub parse_struct_list {
     $input->push_filter($filter || qr//);
 
     while (defined ($_ = $input->peek)) {
-        last if /^$RE{h}{open}/ && ($& =~ tr/=//) < $level;
+        last if /^$DEFAULT_SECTION_RE{open}/;
         $last = defined $break && s/$break\n?$//;
 
         push @list, $self->parse_structure($input);
@@ -299,23 +512,28 @@ sub parse_struct_list {
 sub parse_structure {
     my ($self, $input) = @_;
 
-    my $struct = { line => $input->line };
+    my $struct = undef;
 
     # = heading
-    if ($input->match($RE{h}{open})) {
+    if ($input->match($DEFAULT_SECTION_RE{open})) {
         my $match = $input->last_match;
-        $struct->{type} = H;
-        $struct->{level} = $match =~ tr/=//;
-        $struct->{hidden} = $match =~ /\[/;
-        $struct->{text} =
-            $self->parse_parlike($input, $RE{h}{filter}, $RE{h}{close});
-
-        $struct->{text} =~ s/[\r\n]//g;
+        my $heading =
+            $self->parse_parlike($input, undef, $DEFAULT_SECTION_RE{close});
 
         $input->flush_empty;
 
-        $struct->{content} =
-            $self->parse_struct_list($input, undef, undef, $struct->{level});
+        my $content =
+            $self->parse_struct_list($input, undef, undef);
+
+        $heading =~ s/[\r\n]//g;
+
+        $struct = {
+            type    => SECTION,
+            level   => scalar $match =~ tr/=//,
+            hidden  => scalar $match =~ /\[/,
+            heading => $heading,
+            content => $content,
+        };
 
     } else {
         $struct = $self->parse_block($input);
