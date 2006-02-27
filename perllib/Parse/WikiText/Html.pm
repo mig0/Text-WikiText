@@ -116,6 +116,31 @@ sub dump_verbatim {
     return $verb->{text};
 }
 
+sub dump_table {
+    my ($self, $table, %opts) = @_;
+
+    my $str = "<table>\n";
+
+    foreach my $row (@{$table->{content}}) {
+        $str .= "<tr>";
+
+        my $tag = $row->{heading} ? "th" : "td";
+        foreach my $col (@{$row->{cols}}) {
+            $str .= "<$tag";
+            $str .= " colspan=\"$col->{span}\"" if $col->{span};
+            $str .= ">";
+            $str .= escape($col->{text});
+            $str .= "</$tag>";
+        }
+
+        $str .= "</tr>\n";
+    }
+
+    $str .= "</table>";
+
+    return $str;
+}
+
 sub dump_rule {
     my ($self, $verb, %opts) = @_;
 
@@ -166,7 +191,7 @@ sub dump_section {
 
     my $anchor = $label;
     $anchor =~ s/\s+$//;
-    $anchor =~ s/ /_/;
+    $anchor =~ s/\W/_/g;
 
     return 
         ($heading->{hidden}
@@ -195,6 +220,9 @@ sub dump {
 
         } elsif ($sect->{type} eq QUOTE) {
             push @list, $self->dump_quotation($sect, %opts);
+
+        } elsif ($sect->{type} eq TABLE) {
+            push @list, $self->dump_table($sect, %opts);
 
         } elsif ($sect->{type} eq RULE) {
             push @list, $self->dump_rule($sect, %opts);

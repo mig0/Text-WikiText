@@ -1,8 +1,6 @@
 use strict;
 
 # TODO: early paragraph termination (req no empty line between items of lists)
-# TODO: link heuristic (section table, file types, host regex, etc)
-# TODO: table parser
 
 package Parse::WikiText;
 
@@ -20,6 +18,7 @@ use constant {
     ENUMERATION => 'enumeration',
     DESCRIPTION => 'description',
 
+    TABLE       => 'table',
     RULE        => 'horizontal rule',
     P           => 'paragraph',
     PRE         => 'preformatted',
@@ -41,19 +40,19 @@ use Exporter 'import';
 @EXPORT_OK = qw(
     COMMENT VERBATIM
     SECTION QUOTE LISTING ENUMERATION DESCRIPTION
-    RULE P PRE CODE
+    TABLE RULE P PRE CODE
     EMPHASIS STRONG UNDERLINE STRIKE TYPEWRITER LINK
     TEXT
 );
 %EXPORT_TAGS = (
     generic     => [qw(COMMENT VERBATIM)],
     environment => [qw(SECTION QUOTE LISTING ENUMERATION DESCRIPTION)],
-    paragraphs  => [qw(RULE P PRE CODE)],
+    paragraphs  => [qw(TABLE RULE P PRE CODE)],
     inline      => [qw(EMPHASIS STRONG UNDERLINE STRIKE TYPEWRITER LINK TEXT)],
     types       => [qw(
         COMMENT VERBATIM
         SECTION QUOTE LISTING ENUMERATION DESCRIPTION
-        RULE P PRE CODE
+        TABLE RULE P PRE CODE
         EMPHASIS STRONG UNDERLINE STRIKE TYPEWRITER LINK
         TEXT
     )],
@@ -119,10 +118,6 @@ my %DEFAULT_INLINE_RE = (
     VERBATIM() => {
         open   => qr/{{/,
         close  => qr/}}/,
-        code   => sub {
-            my ($self, $type, $text) = @_;
-            return { type => VERBATIM, text => $text };
-        },
     },
 
     LINK() => {
@@ -240,6 +235,45 @@ my %DEFAULT_PARA_RE = (
             return { type => RULE };
         },
     },
+
+    TABLE() => {
+        open   => qr/\+(?:-*\+)*$/,
+        close  => undef,
+        code   => sub {
+            my ($self, $type, $text) = @_;
+
+            my @rows = split /\n/, $text;
+            my $content = [];
+            for (my $i = 0; $i < @rows; ++$i) {
+                next if $rows[$i] =~ /^\+(?:-*\+)*$/;
+
+                my $row = { cols => [] };
+
+                $row->{heading} = 1
+                    if ($i < @rows - 2) && ($rows[$i+1] =~ /^\+(?:-*\+)*$/);
+
+                $rows[$i] =~ s/^\|\s*|\s*\|$//g;
+
+                my $span = 1;
+                foreach my $col (split /\s*\|\s*/, $rows[$i]) {
+                    if ($col eq '') {
+                        ++$span;
+
+                    } else {
+                        my $column = { text => $col };
+                        $column->{span} = $span if $span > 1;
+                        push @{$row->{cols}}, $column;
+
+                        $span = 1;
+                    }
+                }
+
+                push @$content, $row;
+            }
+
+            return { type => TABLE, content => $content };
+        },
+    },
 );
 
 my %DEFAULT_ENVIRONMENT_RE = (
@@ -279,6 +313,19 @@ my %DEFAULT_ENVIRONMENT_RE = (
 my %DEFAULT_SECTION_RE = (
     open   => qr/=+\[?\s/,
     close  => qr/(?:^|\s)\]?=+|^$/,
+    code   => sub {
+        my ($self, $type, $heading, $content, $match) = @_;
+
+        $heading =~ s/[\r\n]//g;
+
+        return {
+            type    => SECTION,
+            level   => scalar $match =~ tr/=//,
+            hidden  => scalar $match =~ /\[/,
+            heading => $heading,
+            content => $content,
+        };
+    }
 );
 
 use Parse::WikiText::InputFilter;
@@ -525,15 +572,9 @@ sub parse_structure {
         my $content =
             $self->parse_struct_list($input, undef, undef);
 
-        $heading =~ s/[\r\n]//g;
-
-        $struct = {
-            type    => SECTION,
-            level   => scalar $match =~ tr/=//,
-            hidden  => scalar $match =~ /\[/,
-            heading => $heading,
-            content => $content,
-        };
+        $struct = exists $DEFAULT_SECTION_RE{code}
+            ? $DEFAULT_SECTION_RE{code}->($self, SECTION, $heading, $content, $match)
+            : { type => SECTION, heading => $heading, content => $content };
 
     } else {
         $struct = $self->parse_block($input);
