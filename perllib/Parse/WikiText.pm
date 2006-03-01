@@ -1,8 +1,10 @@
-use strict;
+# WikiText parser and ouput modules, Copyright (C) 2006 Enno Cramer
 
 # TODO: early paragraph termination (req no empty line between items of lists)
 
 package Parse::WikiText;
+
+use strict;
 
 use vars qw($VERSION @EXPORT @EXPORT_OK %EXPORT_TAGS);
 $VERSION = 0.1;

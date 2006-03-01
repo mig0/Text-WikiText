@@ -1,6 +1,8 @@
-use strict;
+# WikiText parser and ouput modules, Copyright (C) 2006 Enno Cramer
 
 package Parse::WikiText::Html;
+
+use strict;
 
 use Parse::WikiText ':types';
 

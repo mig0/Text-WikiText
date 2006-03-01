@@ -1,6 +1,8 @@
-use strict;
+# WikiText parser and ouput modules, Copyright (C) 2006 Enno Cramer
 
 package Parse::WikiText::InputFilter;
+
+use strict;
 
 use IO::Handle;
 
