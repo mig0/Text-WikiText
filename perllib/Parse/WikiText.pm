@@ -1,4 +1,4 @@
-# WikiText parser modules, Copyright (C) 2006 Enno Cramer
+# WikiText parser modules, Copyright (C) 2006 Enno Cramer, Mikhael Goikhman
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the Perl Artistic License or the GNU General
