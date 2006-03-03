@@ -600,9 +600,7 @@ sub parse_structure {
 }
 
 sub parse {
-	my ($self, $stream) = @_;
-
-	my $input = Parse::WikiText::InputFilter->new($stream);
+	my ($self, $input) = @_;
 
 	my @list;
 	while (defined $input->peek) {
@@ -610,6 +608,21 @@ sub parse {
 	}
 
 	return \@list;
+}
+
+sub convert {
+	my ($self, $string_or_stream, $format) = @_;
+
+	my $input = Parse::WikiText::InputFilter->new($string_or_stream);
+
+	my $output_class = !$format || $format =~ /html/i
+		? 'Parse::WikiText::HTML'
+		: die "WikiText: Unknown output format ($format)\n";
+
+	eval "use $output_class";
+
+	my $parsed_structures = $self->parse($input);
+	$output_class->dump($parsed_structures);
 }
 
 1;

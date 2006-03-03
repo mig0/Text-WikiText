@@ -17,15 +17,18 @@
 package Parse::WikiText::InputFilter;
 
 use strict;
+use warnings;
 
 use IO::Handle;
 
 sub new {
 	my $class = shift;
-	my $handle = shift;
+	my $string_or_handle = shift;
+	my $is_handle = ref($string_or_handle);
 
 	my $self = {
-		handle => $handle,
+		handle =>  $is_handle && $string_or_handle,
+		string => !$is_handle && $string_or_handle,
 		line   => 0,
 
 		lookahead => undef,
@@ -85,7 +88,10 @@ sub read {
 	return $self->{lookahead}
 		if defined $self->{lookahead};
 
-	$self->{lookahead} = $self->{handle}->getline;
+	$self->{lookahead} = $self->{handle}
+		? $self->{handle}->getline
+		: $self->{string} =~ s/\A(.+\z|.*(?:\r*\n|\r))// ? $1 : undef;
+
 	++$self->{line};
 
 	return $self->{lookahead};

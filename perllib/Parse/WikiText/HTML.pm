@@ -14,7 +14,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-package Parse::WikiText::Html;
+package Parse::WikiText::HTML;
 
 use strict;
 
@@ -270,7 +270,7 @@ sub dump {
 		}
 	}
 
-	return join "\n\n", @list;
+	return join("\n\n", @list) . "\n";
 }
 
 1;
