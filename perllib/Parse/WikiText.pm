@@ -14,8 +14,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-# TODO: early paragraph termination (req no empty line between items of lists)
-
 package Parse::WikiText;
 
 use strict;
@@ -348,7 +346,6 @@ use Parse::WikiText::InputFilter;
 
 sub new {
 	my $class = shift;
-	my $stream = shift;
 
 	my $self = {
 	};
@@ -400,7 +397,7 @@ sub parse_paragraph {
 }
 
 sub parse_parlike {
-	my ($self, $input, $filter, $break) = @_;
+	my ($self, $input, $filter, $close, $parbreak) = @_;
 
 	my $para = '';
 	my $first = 1;
@@ -409,8 +406,10 @@ sub parse_parlike {
 	$input->push_filter($filter || qr//);
 
 	while (defined ($_ = $input->peek)) {
-		$last = defined $break
-			? s/$break\n?$//
+		last if !defined $close && defined $parbreak && /^$parbreak/;
+
+		$last = defined $close
+			? s/$close\n?$//
 			: s/^\n?$// && !$first;
 
 		$para .= $_;
@@ -424,13 +423,13 @@ sub parse_parlike {
 	$input->pop_filter;
 
 	warn("Missing block terminator on input line " . $input->line . ".\n")
-		if defined $break && !$last;
+		if defined $close && !$last;
 
 	return $para;
 }
 
 sub parse_atom {
-	my ($self, $input) = @_;
+	my ($self, $input, $parbreak) = @_;
 
 	my $line = $input->line;
 	my $atom = undef;
@@ -454,7 +453,7 @@ sub parse_atom {
 			if ($input->match($def->{open})) {
 				my $match = $input->last_match;
 				my $text = $self->parse_parlike(
-					$input, $def->{filter}, $def->{close}
+					$input, $def->{filter}, $def->{close}, $parbreak
 				);
 
 				$atom = exists $def->{code}
@@ -478,29 +477,25 @@ my $RE_ALL_ENV =
 	eval "qr/" . (join "|", map { $_->{open} } values %DEFAULT_ENVIRONMENT_RE) . "|" . $DEFAULT_SECTION_RE{open} . "/";
 
 sub parse_block_list {
-	my ($self, $input, $filter, $break) = @_;
+	my ($self, $input, $filter, $close, $parbreak) = @_;
 
 	my  @list = ();
 	my $last;
 
-	$input->push_filter($filter || qr//);
-
 	while (defined ($_ = $input->peek)) {
 		last if !defined $filter && /^$RE_ALL_ENV/;
-		$last = defined $break && s/$break\n?$//;
+		$last = defined $close && s/$close\n?$//;
 
-		push @list, $self->parse_block($input);
+		push @list, $self->parse_block($input, $parbreak);
 
 		last if $last;
 	}
-
-	$input->pop_filter;
 
 	return \@list;
 }
 
 sub parse_block {
-	my ($self, $input) = @_;
+	my ($self, $input, $parbreak) = @_;
 
 	my $block = undef;
 
@@ -508,14 +503,21 @@ sub parse_block {
 		my $def = $DEFAULT_ENVIRONMENT_RE{$type};
 
 		if ($input->match($def->{open})) {
-			my $match = $input->last_match;
+			$input->push_filter($def->{filter} || qr//);
 
 			if ($def->{merge}) {
 				my $elements = [];
 
 				do {
+					my $match = $input->last_match;
+
+					if ($input->peek =~ /^\s*$/) {
+						$input->commit;
+						$input->flush_empty;
+					}
+
 					my $content = $self->parse_block_list(
-						$input, $def->{filter}, $def->{close}
+						$input, $def->{filter}, $def->{close}, $def->{open}
 					);
 
 					my $elem = exists $def->{code}
@@ -523,13 +525,20 @@ sub parse_block {
 						: $content;
 
 					push @$elements, $elem;
-				} while ($input->match($def->{open}));
+				} while ($input->match(qr/^$def->{open}/));
 
 				$block = exists $def->{merge_code}
 					? $def->{merge_code}->($self, $type, $elements)
 					: { type => $type, content => $elements };
 
 			} else {
+				my $match = $input->last_match;
+
+				if ($input->peek =~ /^\s*$/) {
+					$input->commit;
+					$input->flush_empty;
+				}
+
 				my $content = $self->parse_block_list(
 					$input, $def->{filter}, $def->{close}
 				);
@@ -539,35 +548,32 @@ sub parse_block {
 					: { type => $type, content => $content };
 			}
 
+			$input->pop_filter;
+
 			last;
 		}
 	}
 
 	if (! defined $block) {
-		$block = $self->parse_atom($input);
+		$block = $self->parse_atom($input, $parbreak);
 	}
 
 	return $block;
 }
 
 sub parse_struct_list {
-	my ($self, $input, $filter, $break) = @_;
+	my ($self, $input) = @_;
 
 	my  @list = ();
 	my $last;
 
-	$input->push_filter($filter || qr//);
-
 	while (defined ($_ = $input->peek)) {
 		last if /^$DEFAULT_SECTION_RE{open}/;
-		$last = defined $break && s/$break\n?$//;
 
 		push @list, $self->parse_structure($input);
 
 		last if $last;
 	}
-
-	$input->pop_filter;
 
 	return \@list;
 }
@@ -586,7 +592,7 @@ sub parse_structure {
 		$input->flush_empty;
 
 		my $content =
-			$self->parse_struct_list($input, undef, undef);
+			$self->parse_struct_list($input);
 
 		$struct = exists $DEFAULT_SECTION_RE{code}
 			? $DEFAULT_SECTION_RE{code}->($self, SECTION, $heading, $content, $match)

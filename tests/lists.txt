@@ -56,35 +56,35 @@ o item gamma
 
 == Complex ==
 
-o Something Complex::
-  There's a lot to say about this item.
+  o Something Complex::
+    There's a lot to say about this item.
 
-  (code)
-  pseudo code illustrating the problem
-  (end)
+    (code)
+    pseudo code illustrating the problem
+    (end)
 
-  > quotation from a famous person
+    > quotation from a famous person
 
-o Something Even More Complex::
+  o Something Even More Complex::
 
-  | let's go right to the code
+    | let's go right to the code
 
-  A list of possible solutions
+    A list of possible solutions
 
-  # suggestions number one
+    # suggestions number one
 
-    | pseudo code
+      | pseudo code
 
-    - problems with this solution
-    - yet another problem
+      - problems with this solution
+      - yet another problem
 
-  # another suggestion
+    # another suggestion
 
-    > another famous person once suggested
-    >
-    > | solution proposed by famous person
+      > another famous person once suggested
+      >
+      > | solution proposed by famous person
 
-    - drawbacks
+      - drawbacks
 
 Discussion of the proposed solutions (not part of the bullet list).
 
