@@ -422,7 +422,7 @@ sub parse_parlike {
 
 	$input->pop_filter;
 
-	warn("Missing block terminator on input line " . $input->line . ".\n")
+	warn("Missing block terminator on input line " . $input->line_n . ".\n")
 		if defined $close && !$last;
 
 	return $para;
@@ -431,7 +431,7 @@ sub parse_parlike {
 sub parse_atom {
 	my ($self, $input, $parbreak) = @_;
 
-	my $line = $input->line;
+	my $line_n = $input->line_n;
 	my $atom = undef;
 
 	# (foo) specials (end)
@@ -465,7 +465,7 @@ sub parse_atom {
 	}
 
 	if (defined $atom) {
-		$atom->{line} = $line;
+		$atom->{line_n} = $line_n;
 		$input->flush_empty;
 	}
 
