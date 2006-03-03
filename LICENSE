@@ -1,3 +1,5 @@
-The Parse::WikiText module and accompanying documentation and tests
-are licensed under GPLv2 and the Perl Artistic License.  See doc/GPL-2
-and doc/Artistic for the full license texts.
+The Parse::WikiText module and accompanying documentation and tests is
+free software; you can redistribute it and/or modify it under the terms
+of the Perl Artistic License or the GNU General Public License as pub-
+lished by the Free Software Foundation; either version 2 of the License,
+or (at your option) any later version.
