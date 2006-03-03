@@ -131,7 +131,10 @@ sub commit {
 sub flush_empty {
 	my $self = shift;
 
-	while (defined ($_ = $self->read) && $_ =~ /^\s*$/) {
+	while (
+		(defined ($_ = $self->read) && /^\s*$/)
+		|| (defined ($_ = $self->peek) && /^\s*$/)
+	) {
 		$self->commit;
 	}
 }
@@ -148,6 +151,7 @@ sub pop_filter {
 	my $self = shift;
 
 	pop @{$self->{filter}};
+	$self->{buffer} = undef;
 }
 
 1;

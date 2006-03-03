@@ -270,7 +270,10 @@ sub dump {
 		}
 	}
 
-	return join("\n\n", @list) . "\n";
+	my $str = join("\n\n", @list);
+	$str .= "\n" if (caller ne __PACKAGE__);
+
+	return $str;
 }
 
 1;
