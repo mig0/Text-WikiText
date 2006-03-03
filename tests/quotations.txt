@@ -9,7 +9,7 @@
 > blank.
 
 
-== Multiple Pararaphs ==
+== Multiple Paragraphs ==
 
 > At the source of every error which is blamed on the computer, you will
 > find at least two human errors, one of which is the error of blaming
@@ -30,7 +30,7 @@
 
 > The two rules of optimization:
 >
-> # Don't do it
-> # (for experts only) Don't do it yet
+>   # Don't do it
+>   # (for experts only) Don't do it yet
 >
 > -- M. A. Jackson (Principles of Program Design)
