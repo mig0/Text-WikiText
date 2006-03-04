@@ -41,7 +41,8 @@ sub dump_text {
 	my $str = '';
 	foreach my $chunk (@$text) {
 		if ($chunk->{type} eq VERBATIM) {
-			$str .= $chunk->{text};
+			$str .= $chunk->{text}
+				unless $opts{no_verbatim};
 
 		} elsif ($chunk->{type} eq TEXT) {
 			$str .= escape($chunk->{text});
@@ -211,7 +212,7 @@ sub dump_description {
 sub dump_section {
 	my ($self, $heading, %opts) = @_;
 
-	my $level = $heading->{level};
+	my $level = $heading->{level} + ($opts{heading_offset} || 0);
 	my $label = $heading->{heading};
 
 	my $anchor = $label;
@@ -253,7 +254,8 @@ sub dump {
 			push @list, $self->dump_rule($sect, %opts);
 
 		} elsif ($sect->{type} eq VERBATIM) {
-			push @list, $self->dump_verbatim($sect, %opts);
+			push @list, $self->dump_verbatim($sect, %opts)
+				unless $opts{no_verbatim};
 
 		} elsif ($sect->{type} eq PRE) {
 			push @list, $self->dump_preformatted($sect, %opts);

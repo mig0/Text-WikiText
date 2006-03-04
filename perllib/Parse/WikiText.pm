@@ -619,16 +619,16 @@ sub parse {
 }
 
 sub convert {
-	my ($self, $string_or_stream, $format) = @_;
+	my ($self, $string_or_stream, %opts) = @_;
 
-	my $output_class = !$format || $format =~ /html/i
+	my $output_class = !$opts{format} || $opts{format} =~ /html/i
 		? 'Parse::WikiText::HTML'
-		: die "WikiText: Unknown output format ($format)\n";
+		: die "WikiText: Unknown output format ($opts{format})\n";
 
 	eval "use $output_class";
 
 	my $parsed_structures = $self->parse($string_or_stream);
-	$output_class->dump($parsed_structures);
+	$output_class->dump($parsed_structures, %opts);
 }
 
 1;
