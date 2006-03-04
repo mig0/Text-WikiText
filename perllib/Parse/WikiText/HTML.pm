@@ -109,7 +109,7 @@ sub dump_paragraph {
 	}
 
 	$text .= $self->dump_text($para->{text}, %opts);
-	$text =~ s/[\r\n]+$//;
+	$text =~ s/[\n]+$//;
 	$text .= "</p>";
 	
 	return $text;
@@ -119,16 +119,16 @@ sub dump_code {
 	my ($self, $code, %opts) = @_;
 
 	my $text .= $code->{text};
-	$text =~ s/[\r\n]+$//;
+	$text =~ s/[\n]+$//;
 
-	return "<code><pre>" . $text . "</pre></code>";
+	return "<pre><code>" . escape($text) . "</code></pre>";
 }
 
 sub dump_preformatted {
 	my ($self, $pre, %opts) = @_;
 
 	my $text .= $pre->{text};
-	$text =~ s/[\r\n]+$//;
+	$text =~ s/[\n]+$//;
 
 	return "<pre>" . $self->dump_text($pre->{text}) . "</pre>";
 }
@@ -231,6 +231,18 @@ sub dump {
 
 	my @list;
 
+	if (caller ne __PACKAGE__ && $opts{full_page}) {
+		my $title = $opts{title} || "";
+		push @list, <<EOF;
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN' "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<head>
+  <title>$title</title>
+</head>
+<body>
+EOF
+	}
+
 	foreach my $sect (@$list) {
 		if ($sect->{type} eq SECTION) {
 			push @list, $self->dump_section($sect, %opts);
@@ -277,6 +289,9 @@ sub dump {
 			);
 		}
 	}
+
+	push @list, "</body>\n</html>"
+		if caller ne __PACKAGE__ && $opts{full_page};
 
 	my $str = join("\n\n", @list);
 	$str .= "\n" if (caller ne __PACKAGE__);

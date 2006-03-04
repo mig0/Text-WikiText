@@ -33,7 +33,7 @@ use constant {
 	DESCRIPTION => 'description',
 
 	TABLE       => 'table',
-	RULE        => 'horizontal rule',
+	RULE        => 'horizontal-rule',
 	P           => 'paragraph',
 	PRE         => 'preformatted',
 	CODE        => 'code',
@@ -230,9 +230,9 @@ my %DEFAULT_PARA_RE = (
 	},
 
 	CODE() => {
-		open   => qr/\|\s/,
+		open   => qr/[!|]\s/,
 		close  => undef,
-		filter => qr/\|\s/,
+		filter => qr/[!|]\s/,
 	},
 
 	VERBATIM() => {
@@ -250,8 +250,9 @@ my %DEFAULT_PARA_RE = (
 		},
 	},
 
+	# TODO: fix column span vs empty cells
 	TABLE() => {
-		open   => qr/\+(?:-*\+)*$/,
+		open   => qr/\+[+-]*\+$/,
 		close  => undef,
 		code   => sub {
 			my ($self, $type, $text) = @_;
@@ -264,7 +265,7 @@ my %DEFAULT_PARA_RE = (
 				my $row = { cols => [] };
 
 				$row->{heading} = 1
-					if ($i < @rows - 2) && ($rows[$i+1] =~ /^\+(?:-*\+)*$/);
+					if ($i < @rows - 2) && ($rows[$i+1] =~ /^[+-]+$/);
 
 				$rows[$i] =~ s/^\|\s*|\s*\|$//g;
 
@@ -435,16 +436,19 @@ sub parse_atom {
 	my $atom = undef;
 
 	# (foo) specials (end)
-	if ($input->match(qr/\((begin\s+)?[\w ]+\)\n/)) {
+	if ($input->match(qr/\((begin +)?[\w -]+\)\n/)) {
 		my $match = $input->last_match;
-		(my $type = $match) =~ s/^\((begin\s+)?|\s*\)\n//g;
+		$match =~ s/^\((begin +)?| *\)\n//g;
+
+		my @modifiers = split / +/, $match;
+		my $type = pop @modifiers;
 
 		my $text =
-			$self->parse_parlike($input, undef, qr/\(end(\s+\Q$type\E)?\)/);
+			$self->parse_parlike($input, undef, qr/\(end( +\Q$type\E)?\)/);
 
 		$atom = exists $DEFAULT_PARA_RE{$type} && exists $DEFAULT_PARA_RE{$type}{code}
-			? $DEFAULT_PARA_RE{$type}->{code}->($self, $type, $text, $match)
-			: { type => $type, text => $text };
+			? $DEFAULT_PARA_RE{$type}->{code}->($self, $type, $text, $match, [ @modifiers ])
+			: { type => $type, modifiers => [ @modifiers ], text => $text };
 
 	} else {
 		foreach my $type (keys %DEFAULT_PARA_RE) {
