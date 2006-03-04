@@ -1,5 +1,21 @@
 #!/usr/bin/perl
 
+# WikiText convertor script, Copyright (C) 2006 Mikhael Goikhman, Enno Cramer
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the Perl Artistic License or the GNU General
+# Public License as published by the Free Software Foundation; either
+# version 2 of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
 use strict;
 use warnings;
 
@@ -7,5 +23,45 @@ use FindBin;
 use lib "$FindBin::Bin/../perllib";
 
 use Parse::WikiText;
+use Getopt::Long qw(:config no_ignore_case require_order bundling);
 
-print Parse::WikiText->new->convert(\*ARGV);
+my %options = (
+	format => 'html',
+	full_page => 0,
+	no_verbatim => 0,
+	heading_offset => 0,
+	title => 'WikiText converted page',
+);
+
+sub show_usage (;$) {
+	my $is_error = shift || 0;
+	my $out = $is_error ? \*STDERR : \*STDOUT;
+	my $usage = qq{
+		Convert WikiText to HTML or another format.
+
+		Usage: $0 [OPTIONS] [COMPONENT-TYPE COMPONENT-IDS]
+		Options:
+			-h --help              show this usage
+			-f --format NAME       specify format (default: $options{format})
+			-t --title NAME        set title (default: $options{title})
+			-F --full-page         form standard page, i.e. <html>...</html>
+			-V --no-verbatim       do not include verbatim blocks in output
+			-H --heading-offset N  set heading offset (default: 0)
+
+		Note, only HTML format is currently supported.
+	};
+	$usage =~ s/^\n//; $usage =~ s/^\t\t?//mg;
+	print $out $usage;
+	exit $is_error;   
+}
+
+GetOptions(
+	'h|help'             => sub { show_usage(0) },
+	'f|format=s'         => \$options{format},
+	't|title=s'          => \$options{title},
+	'F|full-page'        => \$options{full_page},
+	'V|no-verbatim'      => \$options{no_verbatim},
+	'H|heading-offset=i' => \$options{heading_offset},
+) or show_usage(1);
+
+print Parse::WikiText->new->convert(\*ARGV, %options);
