@@ -33,7 +33,7 @@ use constant {
 	DESCRIPTION => 'description',
 
 	TABLE       => 'table',
-	RULE        => 'horizontal rule',
+	RULE        => 'horizontal-rule',
 	P           => 'paragraph',
 	PRE         => 'preformatted',
 	CODE        => 'code',
@@ -73,7 +73,7 @@ use Exporter 'import';
 );
 
 my $RE_INLINE_PRE = qr/[\s(]/;
-my $RE_INLINE_POST = qr/[ .!?,:;)]|$/;
+my $RE_INLINE_POST = qr/[\s).!?,:;]|$/;
 my $RE_TLD = qr/
 	com|org|net|edu|gov|mil
 	|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|az|ax
@@ -202,7 +202,6 @@ my %DEFAULT_PARA_RE = (
 	P() => {
 		open   => qr/(?:.+?::\s)?/,
 		close  => undef,
-		filter => undef,
 		code   => sub {
 			my ($self, $type, $text, $match) = @_;
 			$match =~ s/:://;
@@ -222,7 +221,6 @@ my %DEFAULT_PARA_RE = (
 	PRE() => {
 		open   => qr/{\s/,
 		close  => qr/(?:^|\s)}/,
-		filter => undef,
 		code   => sub {
 			my ($self, $type, $text) = @_;
 			return { type => PRE, text => $self->parse_paragraph($text) };
@@ -230,28 +228,27 @@ my %DEFAULT_PARA_RE = (
 	},
 
 	CODE() => {
-		open   => qr/\|\s/,
+		open   => qr/[!|]\s/,
 		close  => undef,
-		filter => qr/\|\s/,
+		filter => qr/[!|]($|\s)/,
 	},
 
 	VERBATIM() => {
 		open   => qr/{{\s/,
 		close  => qr/(?:^|\s)}}/,
-		filter => undef,
 	},
 
 	RULE() => {
 		open   => qr/-{3,}\n/,
 		close  => qr//,
-		filter => undef,
 		code   => sub {
 			return { type => RULE };
 		},
 	},
 
+	# TODO: fix column span vs empty cells
 	TABLE() => {
-		open   => qr/\+(?:-*\+)*$/,
+		open   => qr/\+[+-]*\+\n$/,
 		close  => undef,
 		code   => sub {
 			my ($self, $type, $text) = @_;
@@ -264,7 +261,7 @@ my %DEFAULT_PARA_RE = (
 				my $row = { cols => [] };
 
 				$row->{heading} = 1
-					if ($i < @rows - 2) && ($rows[$i+1] =~ /^\+(?:-*\+)*$/);
+					if ($i < @rows - 2) && ($rows[$i+1] =~ /^[+-]+$/);
 
 				$rows[$i] =~ s/^\|\s*|\s*\|$//g;
 
@@ -294,27 +291,24 @@ my %DEFAULT_ENVIRONMENT_RE = (
 	QUOTE() => {
 		open   => qr/>\s/,
 		close  => undef,
-		filter => qr/>\s|\s\s/,
+		filter => qr/[> ]($|\s)/,
 	},
 
 	LISTING() => {
 		open   => qr/[*o-]\s/,
 		close  => undef,
-		filter => undef,
 		merge  => 1,
 	},
 
 	ENUMERATION() => {
 		open   => qr/(?:\d+[.)]|\#)\s/,
 		close  => undef,
-		filter => undef,
 		merge  => 1,
 	},
 
 	DESCRIPTION() => {
 		open   => qr/:.+?:\s/,
 		close  => undef,
-		filter => undef,
 		merge  => 1,
 		code   => sub {
 			my ($self, $type, $content, $match) = @_;
@@ -410,7 +404,7 @@ sub parse_parlike {
 
 		$last = defined $close
 			? s/$close\n?$//
-			: s/^\n?$// && !$first;
+			: !$first && !defined $filter && s/^\n?$//;
 
 		$para .= $_;
 		$input->commit;
@@ -435,16 +429,19 @@ sub parse_atom {
 	my $atom = undef;
 
 	# (foo) specials (end)
-	if ($input->match(qr/\((begin\s+)?[\w ]+\)\n/)) {
+	if ($input->match(qr/\((begin +)?[\w -]+\)\n/)) {
 		my $match = $input->last_match;
-		(my $type = $match) =~ s/^\((begin\s+)?|\s*\)\n//g;
+		$match =~ s/^\((begin +)?| *\)\n//g;
+
+		my @modifiers = split / +/, $match;
+		my $type = pop @modifiers;
 
 		my $text =
-			$self->parse_parlike($input, undef, qr/\(end(\s+\Q$type\E)?\)/);
+			$self->parse_parlike($input, undef, qr/\(end( +\Q$type\E)?\)/);
 
 		$atom = exists $DEFAULT_PARA_RE{$type} && exists $DEFAULT_PARA_RE{$type}{code}
-			? $DEFAULT_PARA_RE{$type}->{code}->($self, $type, $text, $match)
-			: { type => $type, text => $text };
+			? $DEFAULT_PARA_RE{$type}->{code}->($self, $type, $text, $match, [ @modifiers ])
+			: { type => $type, modifiers => [ @modifiers ], text => $text };
 
 	} else {
 		foreach my $type (keys %DEFAULT_PARA_RE) {
@@ -549,6 +546,7 @@ sub parse_block {
 			}
 
 			$input->pop_filter;
+			$input->flush_empty;
 
 			last;
 		}
@@ -619,16 +617,16 @@ sub parse {
 }
 
 sub convert {
-	my ($self, $string_or_stream, $format) = @_;
+	my ($self, $string_or_stream, %opts) = @_;
 
-	my $output_class = !$format || $format =~ /html/i
+	my $output_class = !$opts{format} || $opts{format} =~ /html/i
 		? 'Parse::WikiText::HTML'
-		: die "WikiText: Unknown output format ($format)\n";
+		: die "WikiText: Unknown output format ($opts{format})\n";
 
 	eval "use $output_class";
 
 	my $parsed_structures = $self->parse($string_or_stream);
-	$output_class->dump($parsed_structures);
+	$output_class->dump($parsed_structures, %opts);
 }
 
 1;

@@ -30,7 +30,7 @@ my %table = (
 sub escape {
 	my $text = shift;
 
-	$text =~ s/[&<>"]/$table{$&}/eg;
+	$text =~ s/[&<>\"]/$table{$&}/eg;
 
 	return $text;
 }
@@ -41,7 +41,8 @@ sub dump_text {
 	my $str = '';
 	foreach my $chunk (@$text) {
 		if ($chunk->{type} eq VERBATIM) {
-			$str .= $chunk->{text};
+			$str .= $chunk->{text}
+				unless $opts{no_verbatim};
 
 		} elsif ($chunk->{type} eq TEXT) {
 			$str .= escape($chunk->{text});
@@ -95,14 +96,20 @@ sub dump_paragraph {
 
 	if (defined $para->{heading}) {
 		my $h = $para->{heading};
+
 		$h =~ s,^,<b>,;
 		$h =~ s,$,</b>,;
-		$h =~ s,\n,<br />\n,;
+		if (@{$para->{text}}) {
+			$h =~ s,\n,<br />\n,;
+		} else {
+			$h =~ s,\n,,;
+		}
+
 		$text .= $h;
 	}
 
 	$text .= $self->dump_text($para->{text}, %opts);
-	$text =~ s/[\r\n]+$//;
+	$text =~ s/[\n]+$//;
 	$text .= "</p>";
 	
 	return $text;
@@ -112,16 +119,16 @@ sub dump_code {
 	my ($self, $code, %opts) = @_;
 
 	my $text .= $code->{text};
-	$text =~ s/[\r\n]+$//;
+	$text =~ s/[\n]+$//;
 
-	return "<code><pre>" . $text . "</pre></code>";
+	return "<pre><code>" . escape($text) . "</code></pre>";
 }
 
 sub dump_preformatted {
 	my ($self, $pre, %opts) = @_;
 
 	my $text .= $pre->{text};
-	$text =~ s/[\r\n]+$//;
+	$text =~ s/[\n]+$//;
 
 	return "<pre>" . $self->dump_text($pre->{text}) . "</pre>";
 }
@@ -205,7 +212,7 @@ sub dump_description {
 sub dump_section {
 	my ($self, $heading, %opts) = @_;
 
-	my $level = $heading->{level};
+	my $level = $heading->{level} + ($opts{heading_offset} || 0);
 	my $label = $heading->{heading};
 
 	my $anchor = $label;
@@ -223,6 +230,18 @@ sub dump {
 	my ($self, $list, %opts) = @_;
 
 	my @list;
+
+	if (caller ne __PACKAGE__ && $opts{full_page}) {
+		my $title = $opts{title} || "";
+		push @list, <<EOF;
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN' "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<head>
+  <title>$title</title>
+</head>
+<body>
+EOF
+	}
 
 	foreach my $sect (@$list) {
 		if ($sect->{type} eq SECTION) {
@@ -247,7 +266,8 @@ sub dump {
 			push @list, $self->dump_rule($sect, %opts);
 
 		} elsif ($sect->{type} eq VERBATIM) {
-			push @list, $self->dump_verbatim($sect, %opts);
+			push @list, $self->dump_verbatim($sect, %opts)
+				unless $opts{no_verbatim};
 
 		} elsif ($sect->{type} eq PRE) {
 			push @list, $self->dump_preformatted($sect, %opts);
@@ -269,6 +289,9 @@ sub dump {
 			);
 		}
 	}
+
+	push @list, "</body>\n</html>"
+		if caller ne __PACKAGE__ && $opts{full_page};
 
 	my $str = join("\n\n", @list);
 	$str .= "\n" if (caller ne __PACKAGE__);
