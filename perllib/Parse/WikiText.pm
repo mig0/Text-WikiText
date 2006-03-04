@@ -73,7 +73,7 @@ use Exporter 'import';
 );
 
 my $RE_INLINE_PRE = qr/[\s(]/;
-my $RE_INLINE_POST = qr/[ .!?,:;)]|$/;
+my $RE_INLINE_POST = qr/[\s).!?,:;]|$/;
 my $RE_TLD = qr/
 	com|org|net|edu|gov|mil
 	|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|az|ax

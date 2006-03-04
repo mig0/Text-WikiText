@@ -44,6 +44,8 @@ of colons, on the first line.
 Special Note #2:: Paragraph headings don't necessarily stand alone on
 the first line.
 
+No extraneous newline::
+
          -----------------------------------------------------
 
 (comment)

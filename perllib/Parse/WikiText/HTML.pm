@@ -30,7 +30,7 @@ my %table = (
 sub escape {
 	my $text = shift;
 
-	$text =~ s/[&<>"]/$table{$&}/eg;
+	$text =~ s/[&<>\"]/$table{$&}/eg;
 
 	return $text;
 }
@@ -95,9 +95,15 @@ sub dump_paragraph {
 
 	if (defined $para->{heading}) {
 		my $h = $para->{heading};
+
 		$h =~ s,^,<b>,;
 		$h =~ s,$,</b>,;
-		$h =~ s,\n,<br />\n,;
+		if (@{$para->{text}}) {
+			$h =~ s,\n,<br />\n,;
+		} else {
+			$h =~ s,\n,,;
+		}
+
 		$text .= $h;
 	}
 
