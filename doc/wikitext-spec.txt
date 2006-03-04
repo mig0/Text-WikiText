@@ -212,10 +212,8 @@ HTML Output::
 
   {{
     <div class="sample">
-    <pre>
-    Hi there!
-            ^-- <strong>exclamation mark</strong>
-    </pre>
+  <pre>Hi there!
+          ^-- <strong>exclamation mark</strong></pre>
     </div>
   }}
 
@@ -242,11 +240,9 @@ HTML output::
 
   {{
     <div class="sample">
-    <pre>
-    +------+
-    | w00t |
-    +------+
-    </pre>
+  <pre>+------+
+  | w00t |
+  +------+</pre>
     </div>
   }}
 

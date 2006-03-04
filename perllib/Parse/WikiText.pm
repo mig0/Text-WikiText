@@ -202,7 +202,6 @@ my %DEFAULT_PARA_RE = (
 	P() => {
 		open   => qr/(?:.+?::\s)?/,
 		close  => undef,
-		filter => undef,
 		code   => sub {
 			my ($self, $type, $text, $match) = @_;
 			$match =~ s/:://;
@@ -222,7 +221,6 @@ my %DEFAULT_PARA_RE = (
 	PRE() => {
 		open   => qr/{\s/,
 		close  => qr/(?:^|\s)}/,
-		filter => undef,
 		code   => sub {
 			my ($self, $type, $text) = @_;
 			return { type => PRE, text => $self->parse_paragraph($text) };
@@ -232,19 +230,17 @@ my %DEFAULT_PARA_RE = (
 	CODE() => {
 		open   => qr/[!|]\s/,
 		close  => undef,
-		filter => qr/[!|]\s/,
+		filter => qr/[!|]($|\s)/,
 	},
 
 	VERBATIM() => {
 		open   => qr/{{\s/,
 		close  => qr/(?:^|\s)}}/,
-		filter => undef,
 	},
 
 	RULE() => {
 		open   => qr/-{3,}\n/,
 		close  => qr//,
-		filter => undef,
 		code   => sub {
 			return { type => RULE };
 		},
@@ -252,7 +248,7 @@ my %DEFAULT_PARA_RE = (
 
 	# TODO: fix column span vs empty cells
 	TABLE() => {
-		open   => qr/\+[+-]*\+$/,
+		open   => qr/\+[+-]*\+\n$/,
 		close  => undef,
 		code   => sub {
 			my ($self, $type, $text) = @_;
@@ -295,27 +291,24 @@ my %DEFAULT_ENVIRONMENT_RE = (
 	QUOTE() => {
 		open   => qr/>\s/,
 		close  => undef,
-		filter => qr/>\s|\s\s/,
+		filter => qr/[> ]($|\s)/,
 	},
 
 	LISTING() => {
 		open   => qr/[*o-]\s/,
 		close  => undef,
-		filter => undef,
 		merge  => 1,
 	},
 
 	ENUMERATION() => {
 		open   => qr/(?:\d+[.)]|\#)\s/,
 		close  => undef,
-		filter => undef,
 		merge  => 1,
 	},
 
 	DESCRIPTION() => {
 		open   => qr/:.+?:\s/,
 		close  => undef,
-		filter => undef,
 		merge  => 1,
 		code   => sub {
 			my ($self, $type, $content, $match) = @_;
@@ -411,7 +404,7 @@ sub parse_parlike {
 
 		$last = defined $close
 			? s/$close\n?$//
-			: s/^\n?$// && !$first;
+			: !$first && !defined $filter && s/^\n?$//;
 
 		$para .= $_;
 		$input->commit;
@@ -553,6 +546,7 @@ sub parse_block {
 			}
 
 			$input->pop_filter;
+			$input->flush_empty;
 
 			last;
 		}
