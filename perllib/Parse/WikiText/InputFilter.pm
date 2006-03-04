@@ -30,6 +30,7 @@ sub new {
 		handle =>  $is_handle && $string_or_handle,
 		string => !$is_handle && $string_or_handle,
 		line_n => 0,
+		eof    => 0,
 
 		lookahead => undef,
 		filter    => [],
@@ -86,13 +87,14 @@ sub readline {
 	my $self = shift;
 
 	return $self->{lookahead}
-		if defined $self->{lookahead};
+		if defined $self->{lookahead} || $self->{eof};
 
 	my $line = $self->{handle}
 		? $self->{handle}->getline
 		: $self->{string} =~ s/\A(.+\z|.*(?:\r*\n|\r))// ? $1 : undef;
 
-	$line =~ s/(?:\r*\n|\r)/\n/ if $line;
+	$self->{eof} = !defined $line;
+	$line =~ s/(?:\r*\n|\r)/\n/ if defined $line;
 
 	++$self->{line_n};
 
