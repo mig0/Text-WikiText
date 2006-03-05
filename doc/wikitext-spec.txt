@@ -249,30 +249,30 @@ HTML output::
 
 === Tables ===
 
-Tabular material delimited by row containing only plus- ("+") and
+Tabular material is delimited by a line containing only plus- ("+") and
 minus-signs ("-") at the front, and an empty line at the end.  The
-starting row must start and end with a plus-sign.
+starting line must start and end with a plus-sign.
 
-Every line corresponds to a single table row.  Table cells are
-separated by vertical bars ("|").  Cells spanning multiple columns can
-be specified by repeating the delimiter.
+Every line (except for separator lines) corresponds to a single table
+row.  Table cells are separated by vertical bars ("|").  Cells spanning
+multiple columns can be specified by repeating the delimiter.
 
 The table can optionally include separator lines, consisting of only
-plus- and minus-signs.  A trailing separator lines is discarded
+plus- and minus-signs.  A trailing separator line (if any) is discarded
 entirely.  Separator lines inside the table mark the previous row as a
 table heading.  The separator line itself is still discarded.
 
 Example::
 
-  | +---------------+---------+
-  | | Effect        | Example |
-  | +---------------+---------+
-  | | Emphasis      | /words/ |
-  | | Strong        | *words* |
-  | | Typewriter    | {words} |
-  | | Underline     | _words_ |
-  | | Strikethrough | -words- |
-  | +---------------+---------+
+  | +---------------+--------------+
+  | | Effect        | Markup       |
+  | +---------------+--------------+
+  | | Emphasis      | /some words/ |
+  | | Strong        | *some words* |
+  | | Typewriter    | {some words} |
+  | | Underline     | _some words_ |
+  | | Strikethrough | -some words- |
+  | +---------------+--------------+
 
 HTML Output::
 
@@ -280,11 +280,11 @@ HTML Output::
     <div class="sample">
       <table>
         <tr><th>Effect</th><th>Markup</th></tr>
-        <tr><td>Emphasis</td><td><em>words</em></td></tr>
-        <tr><td>Strong</td><td><strong>words</strong></td></tr>
-        <tr><td>Typewriter</td><td><tt>words</tt></td></tr>
-        <tr><td>Underline</td><td><u>words</u></td></tr>
-        <tr><td>Strikethrough</td><td><strike>words</strike></td></tr>
+        <tr><td>Emphasis</td><td><em>some words</em></td></tr>
+        <tr><td>Strong</td><td><strong>some words</strong></td></tr>
+        <tr><td>Typewriter</td><td><tt>some words</tt></td></tr>
+        <tr><td>Underline</td><td><u>some words</u></td></tr>
+        <tr><td>Strikethrough</td><td><strike>some words</strike></td></tr>
       </table>
     </div>
   }}

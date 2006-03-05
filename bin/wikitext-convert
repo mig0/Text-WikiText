@@ -39,7 +39,7 @@ sub show_usage (;$) {
 	my $usage = qq{
 		Convert WikiText to HTML or another format.
 
-		Usage: $0 [OPTIONS] [COMPONENT-TYPE COMPONENT-IDS]
+		Usage: $0 [OPTIONS] [file ...]
 		Options:
 			-h --help              show this usage
 			-f --format NAME       specify format (default: $options{format})
