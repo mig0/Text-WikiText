@@ -75,7 +75,8 @@ use Exporter 'import';
 my $RE_INLINE_PRE = qr/[\s(]/;
 my $RE_INLINE_POST = qr/[\s).!?,:;]|$/;
 my $RE_TLD = qr/
-	com|org|net|edu|gov|mil
+	com|edu|gov|int|mil|net|org
+	|aero|biz|coop|info|museum|name|pro
 	|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|az|ax
 	|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz
 	|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz
