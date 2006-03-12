@@ -17,9 +17,9 @@
 package Parse::WikiText;
 
 use strict;
+use warnings;
 
-use vars qw($VERSION @EXPORT @EXPORT_OK %EXPORT_TAGS);
-$VERSION = 0.1;
+our $VERSION = 0.1;
 
 use constant {
 	COMMENT     => 'comment',
@@ -48,17 +48,17 @@ use constant {
 	TEXT        => 'normal text',
 };
 
-use Exporter 'import';
+use base 'Exporter';
 
-@EXPORT = qw();
-@EXPORT_OK = qw(
+our @EXPORT = qw();
+our @EXPORT_OK = qw(
 	COMMENT VERBATIM
 	SECTION QUOTE LISTING ENUMERATION DESCRIPTION
 	TABLE RULE P PRE CODE
 	EMPHASIS STRONG UNDERLINE STRIKE TYPEWRITER LINK
 	TEXT
 );
-%EXPORT_TAGS = (
+our %EXPORT_TAGS = (
 	generic     => [qw(COMMENT VERBATIM)],
 	environment => [qw(SECTION QUOTE LISTING ENUMERATION DESCRIPTION)],
 	paragraphs  => [qw(TABLE RULE P PRE CODE)],
