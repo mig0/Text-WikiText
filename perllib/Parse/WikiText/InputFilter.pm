@@ -131,6 +131,8 @@ sub commit {
 sub flush_empty {
 	my $self = shift;
 
+	local $_;
+
 	while (
 		(defined ($_ = $self->read) && /^\s*$/)
 		|| (defined ($_ = $self->peek) && /^\s*$/)

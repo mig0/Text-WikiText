@@ -399,6 +399,8 @@ sub parse_parlike {
 
 	$input->push_filter($filter || qr//);
 
+	local $_;
+
 	while (defined ($_ = $input->peek)) {
 		last if !defined $close && defined $parbreak && /^$parbreak/;
 
@@ -478,6 +480,8 @@ sub parse_block_list {
 
 	my  @list = ();
 	my $last;
+
+	local $_;
 
 	while (defined ($_ = $input->peek)) {
 		last if !defined $filter && /^$RE_ALL_ENV/;
@@ -564,6 +568,8 @@ sub parse_struct_list {
 
 	my  @list = ();
 	my $last;
+
+	local $_;
 
 	while (defined ($_ = $input->peek)) {
 		last if /^$DEFAULT_SECTION_RE{open}/;
