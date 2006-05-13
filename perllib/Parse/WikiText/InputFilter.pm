@@ -29,7 +29,8 @@ sub new {
 	my $self = {
 		handle =>  $is_handle && $string_or_handle,
 		string => !$is_handle && $string_or_handle,
-		line   => 0,
+		line_n => 0,
+		eof    => 0,
 
 		lookahead => undef,
 		filter    => [],
@@ -43,10 +44,10 @@ sub new {
 	return bless $self, $class;
 }
 
-sub line {
+sub line_n {
 	my $self = shift;
 
-	return $self->{line};
+	return $self->{line_n};
 }
 
 sub last_prefix {
@@ -65,7 +66,7 @@ sub peek {
 	my $self = shift;
 
 	if (! defined $self->{buffer}) {
-		my $line = $self->read;
+		my $line = $self->readline;
 
 		if (defined $line) {
 			foreach my $filter (@{$self->{filter}}) {
@@ -82,19 +83,22 @@ sub peek {
 	return $self->{buffer};
 }
 
-sub read {
+sub readline {
 	my $self = shift;
 
 	return $self->{lookahead}
-		if defined $self->{lookahead};
+		if defined $self->{lookahead} || $self->{eof};
 
-	$self->{lookahead} = $self->{handle}
+	my $line = $self->{handle}
 		? $self->{handle}->getline
 		: $self->{string} =~ s/\A(.+\z|.*(?:\r*\n|\r))// ? $1 : undef;
 
-	++$self->{line};
+	$self->{eof} = !defined $line;
+	$line =~ s/(?:\r*\n|\r)/\n/ if defined $line;
 
-	return $self->{lookahead};
+	++$self->{line_n};
+
+	return $self->{lookahead} = $line;
 }
 
 sub try {
@@ -134,7 +138,7 @@ sub flush_empty {
 	local $_;
 
 	while (
-		(defined ($_ = $self->read) && /^\s*$/)
+		(defined ($_ = $self->readline) && /^\s*$/)
 		|| (defined ($_ = $self->peek) && /^\s*$/)
 	) {
 		$self->commit;

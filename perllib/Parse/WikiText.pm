@@ -17,9 +17,9 @@
 package Parse::WikiText;
 
 use strict;
+use warnings;
 
-use vars qw($VERSION @EXPORT @EXPORT_OK %EXPORT_TAGS);
-$VERSION = 0.1;
+our $VERSION = 0.1;
 
 use constant {
 	COMMENT     => 'comment',
@@ -48,17 +48,17 @@ use constant {
 	TEXT        => 'normal text',
 };
 
-use Exporter 'import';
+use base 'Exporter';
 
-@EXPORT = qw();
-@EXPORT_OK = qw(
+our @EXPORT = qw();
+our @EXPORT_OK = qw(
 	COMMENT VERBATIM
 	SECTION QUOTE LISTING ENUMERATION DESCRIPTION
 	TABLE RULE P PRE CODE
 	EMPHASIS STRONG UNDERLINE STRIKE TYPEWRITER LINK
 	TEXT
 );
-%EXPORT_TAGS = (
+our %EXPORT_TAGS = (
 	generic     => [qw(COMMENT VERBATIM)],
 	environment => [qw(SECTION QUOTE LISTING ENUMERATION DESCRIPTION)],
 	paragraphs  => [qw(TABLE RULE P PRE CODE)],
@@ -75,7 +75,8 @@ use Exporter 'import';
 my $RE_INLINE_PRE = qr/[\s(]/;
 my $RE_INLINE_POST = qr/[\s).!?,:;]|$/;
 my $RE_TLD = qr/
-	com|org|net|edu|gov|mil
+	com|edu|gov|int|mil|net|org
+	|aero|biz|coop|info|museum|name|pro
 	|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|az|ax
 	|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz
 	|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz
@@ -418,7 +419,7 @@ sub parse_parlike {
 
 	$input->pop_filter;
 
-	warn("Missing block terminator on input line " . $input->line . ".\n")
+	warn("Missing block terminator on input line " . $input->line_n . ".\n")
 		if defined $close && !$last;
 
 	return $para;
@@ -427,7 +428,7 @@ sub parse_parlike {
 sub parse_atom {
 	my ($self, $input, $parbreak) = @_;
 
-	my $line = $input->line;
+	my $line_n = $input->line_n;
 	my $atom = undef;
 
 	# (foo) specials (end)
@@ -464,7 +465,7 @@ sub parse_atom {
 	}
 
 	if (defined $atom) {
-		$atom->{line} = $line;
+		$atom->{line_n} = $line_n;
 		$input->flush_empty;
 	}
 
