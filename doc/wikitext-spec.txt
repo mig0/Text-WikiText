@@ -546,8 +546,12 @@ HTML Output::
 
   {{
     <div class="sample">
-      <h1><a name="heading_level_1">heading level 1</a></h1>
-      <h2><a name="heading_level_2">heading level 2</a></h2>
+      <a name="heading_level_1"></a>
+      <h1>heading level 1</h1>
+
+      <a name="heading_level_2"></a>
+      <h2>heading level 2</h2>
+
       <a name="invisible_heading"></a>
     </div>
   }}

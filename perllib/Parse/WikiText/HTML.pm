@@ -220,9 +220,10 @@ sub dump_section {
 	$anchor =~ s/\W/_/g;
 
 	return 
-		($heading->{hidden}
-			? "<a name=\"$anchor\"></a>\n"
-			: "<h$level><a name=\"$anchor\">$label</a></h$level>\n")
+		"<a name=\"$anchor\"></a>\n" .
+		($heading->{hidden}	
+			? ""
+			: "<h$level>$label</h$level>\n")
 		. $self->dump($heading->{content}, %opts);
 }
 
