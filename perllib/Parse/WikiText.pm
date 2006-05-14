@@ -556,8 +556,9 @@ sub convert {
 	$output_class = "Parse::WikiText::$output_class"
 		unless ref $output_class || $output_class =~ /::/;
 
-	eval "require $output_class"
-		or die $@;
+	if (ref $output_class eq '') {
+		eval "require $output_class" or die $@;
+	}
 
 	my $parsed_structures = $self->parse($string_or_stream);
 	$output_class->dump($parsed_structures, %opts);
