@@ -20,7 +20,38 @@ use strict;
 
 use Parse::WikiText ':types';
 
-my %table = (
+my $RE_TLD = qr/
+	com|edu|gov|int|mil|net|org
+	|aero|biz|coop|info|museum|name|pro
+	|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|az|ax
+	|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz
+	|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz
+	|de|dj|dk|dm|do|dz
+	|ec|ee|eg|eh|er|es|et|eu
+	|fi|fj|fk|fm|fo|fr
+	|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy
+	|hk|hm|hn|hr|ht|hu
+	|id|ie|il|im|in|io|iq|ir|is|it
+	|je|jm|jo|jp
+	|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz
+	|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly
+	|ma|mc|md|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz
+	|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz
+	|om
+	|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py
+	|qa
+	|re|ro|ru|rw
+	|sa|sb|sc|sd|se|sg|sh|si|sj|sk|sl|sm|sn|so|sr|st|sv|sy|sz
+	|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz
+	|ua|ug|uk|um|us|uy|uz
+	|va|vc|ve|vg|vi|vn|vu
+	|wf|ws
+	|ye|yt|yu
+	|za|zm|zw
+/x;
+
+
+my %ENTITIES = (
 	'&' => '&amp;',
 	'<' => '&lt;',
 	'>' => '&gt;',
@@ -30,9 +61,61 @@ my %table = (
 sub escape {
 	my $text = shift;
 
-	$text =~ s/[&<>\"]/$table{$&}/eg;
+	$text =~ s/[&<>\"]/$ENTITIES{$&}/eg;
 
 	return $text;
+}
+
+sub fill_in_link {
+	my ($self, $chunk) = @_;
+
+	if ($chunk->{style} eq '') {
+		# bitmap files
+		if ($chunk->{target} =~ /\.(png|jpg|jpeg|gif)$/) {
+			$chunk->{style} = '=';
+
+			# network protocols
+		} elsif ($chunk->{target} =~ /^(http|ftp|news|mailto|irc):/) {
+			$chunk->{style} = '>';
+
+			# common top level domains
+		} elsif ($chunk->{target} =~ /^(\w+\.){1,}$RE_TLD/) {
+			$chunk->{style} = '>';
+
+			# whitespace in urls is bad
+		} elsif ($chunk->{target} =~ /\s/) {
+			$chunk->{style} = '#';
+
+			# fallback
+		} else {
+			$chunk->{style} = '>';
+		}
+	}
+
+	$chunk->{label} ||= $chunk->{target};
+
+	# outside link, without protocol and no directory identifier
+	if ($chunk->{style} eq '>'
+		&& $chunk->{target} !~ /^\w+:/
+		&& $chunk->{target} !~ m,^(/|\.),
+	) {
+		if ($chunk->{target} =~ /@/) {
+			$chunk->{target} = "mailto:" . $chunk->{target};
+
+		} elsif ($chunk->{target} =~ /^www\./) {
+			$chunk->{target} = "http://" . $chunk->{target};
+
+		} elsif ($chunk->{target} =~ /^ftp\./) {
+			$chunk->{target} = "ftp://" . $chunk->{target};
+
+		} elsif ($chunk->{target} =~ /^(\w+\.){1,}$RE_TLD/) {
+			$chunk->{target} = "http://" . $chunk->{target};
+		}
+
+		if ($chunk->{target} =~ /\.$RE_TLD$/) {
+			$chunk->{target} .= '/';
+		}
+	}
 }
 
 sub dump_text {
@@ -63,6 +146,8 @@ sub dump_text {
 			$str .= '<tt>' . escape($chunk->{text}) . '</tt>';
 
 		} elsif ($chunk->{type} eq LINK) {
+			$self->fill_in_link($chunk);
+
 			if ($chunk->{style} eq '>') {
 				$str .= '<a href="' . $chunk->{target} . '">' 
 					. escape($chunk->{label}) 

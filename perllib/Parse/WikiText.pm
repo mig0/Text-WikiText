@@ -74,35 +74,6 @@ our %EXPORT_TAGS = (
 
 my $RE_INLINE_PRE = qr/[\s(]/;
 my $RE_INLINE_POST = qr/[\s).!?,:;]|$/;
-my $RE_TLD = qr/
-	com|edu|gov|int|mil|net|org
-	|aero|biz|coop|info|museum|name|pro
-	|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|az|ax
-	|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz
-	|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz
-	|de|dj|dk|dm|do|dz
-	|ec|ee|eg|eh|er|es|et|eu
-	|fi|fj|fk|fm|fo|fr
-	|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy
-	|hk|hm|hn|hr|ht|hu
-	|id|ie|il|im|in|io|iq|ir|is|it
-	|je|jm|jo|jp
-	|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz
-	|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly
-	|ma|mc|md|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz
-	|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz
-	|om
-	|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py
-	|qa
-	|re|ro|ru|rw
-	|sa|sb|sc|sd|se|sg|sh|si|sj|sk|sl|sm|sn|so|sr|st|sv|sy|sz
-	|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz
-	|ua|ug|uk|um|us|uy|uz
-	|va|vc|ve|vg|vi|vn|vu
-	|wf|ws
-	|ye|yt|yu
-	|za|zm|zw
-/x;
 
 my %DEFAULT_INLINE_RE = (
 	EMPHASIS() => {
@@ -142,58 +113,13 @@ my %DEFAULT_INLINE_RE = (
 			my ($self, $type, $text, $match) = @_;
 
 			(my $style = $match) =~ s/^\[//;
-			my ($target, $label) = split /\|/, $text;
-
-			if ($style eq '') {
-				# bitmap files
-				if ($target =~ /\.(png|jpg|jpeg|gif)$/) {
-					$style = '=';
-
-				# network protocols
-				} elsif ($target =~ /^(http|ftp|news|mailto|irc):/) {
-					$style = '>';
-
-				# common top level domains
-				} elsif ($target =~ /^(\w+\.){1,}$RE_TLD/) {
-					$style = '>';
-
-				# whitespace in urls is bad
-				} elsif ($target =~ /\s/) {
-					$style = '#';
-
-				# fallback
-				} else {
-					$style = '>';
-				}
-			}
-
-			$label ||= $target;
-
-			# outside link, without protocol and no directory identifier
-			if ($style eq '>' && $target !~ /^\w+:/ && $target !~ m,^(/|\.),) {
-				if ($target =~ /@/) {
-					$target = "mailto:" . $target;
-
-				} elsif ($target =~ /^www\./) {
-					$target = "http://" . $target;
-
-				} elsif ($target =~ /^ftp\./) {
-					$target = "ftp://" . $target;
-
-				} elsif ($target =~ /^(\w+\.){1,}$RE_TLD/) {
-					$target = "http://" . $target;
-				}
-
-				if ($target =~ /\.$RE_TLD$/) {
-					$target .= '/';
-				}
-			}
+			my ($target, $label) = split /\|/, $text, 2;
 
 			return {
-				type  => LINK,
-				label => $label,
+				type   => LINK,
+				label  => $label,
 				target => $target,
-				style => $style,
+				style  => $style,
 			};
 		},
 	},
