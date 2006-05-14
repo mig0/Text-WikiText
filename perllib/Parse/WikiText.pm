@@ -552,11 +552,12 @@ sub parse {
 sub convert {
 	my ($self, $string_or_stream, %opts) = @_;
 
-	my $output_class = !$opts{format} || $opts{format} =~ /html/i
-		? 'Parse::WikiText::HTML'
-		: die "WikiText: Unknown output format ($opts{format})\n";
+	my $output_class = $opts{format} || 'HTML';
+	$output_class = "Parse::WikiText::$output_class"
+		unless ref $output_class || $output_class =~ /::/;
 
-	eval "use $output_class";
+	eval "require $output_class"
+		or die $@;
 
 	my $parsed_structures = $self->parse($string_or_stream);
 	$output_class->dump($parsed_structures, %opts);
