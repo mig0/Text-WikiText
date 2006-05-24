@@ -1,4 +1,9 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
+
+# This script tests Parse::WikiText, inline syntax.
+
+use strict;
+use warnings;
 
 use FindBin;
 use lib "$FindBin::Bin/../perllib";
@@ -8,21 +13,23 @@ plan tests => 32;
 
 use_ok('Parse::WikiText', ':inline');
 
-can_ok(Parse::WikiText, qw(new));
+can_ok('Parse::WikiText', 'new');
 
 my $PARSER = Parse::WikiText->new;
 
-isa_ok($PARSER, Parse::WikiText, 'new works');
+isa_ok($PARSER, 'Parse::WikiText', 'new works');
 can_ok($PARSER, qw(parse parse_paragraph convert));
 
 my $struct;
 
 $struct = $PARSER->parse_paragraph('/emph/ *strong* _underline_ -strike- {typewriter} [link] {{verbatim}}');
 
-my @types = (EMPHASIS(), TEXT(), STRONG(), TEXT(),
-			 UNDERLINE(), TEXT(), STRIKE(), TEXT(),
-			 TYPEWRITER(), TEXT(), LINK(), TEXT(),
-			 VERBATIM());
+my @types = (
+	EMPHASIS(), TEXT(), STRONG(), TEXT(),
+	UNDERLINE(), TEXT(), STRIKE(), TEXT(),
+	TYPEWRITER(), TEXT(), LINK(), TEXT(),
+	VERBATIM(),
+);
 
 isa_ok($struct, 'ARRAY', 'parse_paragraph returns array');
 is(@$struct, @types, 'number of elements');
