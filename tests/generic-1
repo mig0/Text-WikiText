@@ -1,4 +1,9 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
+
+# This script tests Parse::WikiText, generic syntax.
+
+use strict;
+use warnings;
 
 use FindBin;
 use lib "$FindBin::Bin/../perllib";
@@ -8,11 +13,11 @@ plan tests => 10;
 
 use_ok('Parse::WikiText', ':generic');
 
-can_ok(Parse::WikiText, qw(new));
+can_ok('Parse::WikiText', 'new');
 
 my $PARSER = Parse::WikiText->new;
 
-isa_ok($PARSER, Parse::WikiText, 'new works');
+isa_ok($PARSER, 'Parse::WikiText', 'new works');
 can_ok($PARSER, qw(parse parse_paragraph convert));
 
 my $struct;
