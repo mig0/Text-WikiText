@@ -177,7 +177,7 @@ sub dump_text {
 sub dump_paragraph {
 	my ($self, $para, %opts) = @_;
 
-	my $text = "<p>";
+	my $text = '';
 
 	if (defined $para->{heading}) {
 		my $h = $para->{heading};
@@ -195,7 +195,9 @@ sub dump_paragraph {
 
 	$text .= $self->dump_text($para->{text}, %opts);
 	$text =~ s/[\n]+$//;
-	$text .= "</p>";
+
+	$text = "<p>$text</p>"
+		unless $opts{no_p};
 	
 	return $text;
 }
@@ -261,8 +263,22 @@ sub dump_quotation {
 	return "<blockquote>\n" . $self->dump($quote->{content}, %opts) . "\n</blockquote>"
 }
 
+sub _is_simple_p_list (@) {
+	foreach (@_) {
+		return 0 if @$_ > 1;
+		return 0 if $_->[0]->{type} ne P;
+		return 0 if defined $_->[0]->{heading};
+		return 0 if $_->[0]->{text} =~ /\n/;
+	}
+
+	return 1;
+}
+
 sub dump_listing {
 	my ($self, $listing, %opts) = @_;
+
+	$opts{no_p} = 1 
+		if$opts{flat_lists} && _is_simple_p_list(@{$listing->{content}});
 
 	return
 		"<ul>\n" .
@@ -275,6 +291,9 @@ sub dump_listing {
 sub dump_enumeration {
 	my ($self, $enum, %opts) = @_;
 
+	$opts{no_p} = 1 
+		if$opts{flat_lists} && _is_simple_p_list(@{$enum->{content}});
+
 	return
 		"<ol>\n"	.
 		join("", map {
@@ -285,6 +304,9 @@ sub dump_enumeration {
 
 sub dump_description {
 	my ($self, $descr, %opts) = @_;
+
+	$opts{no_p} = 1 
+		if$opts{flat_lists} && _is_simple_p_list(map { $_->[1] } @{$descr->{content}});
 
 	return
 		"<dl>\n"	.
