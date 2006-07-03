@@ -239,7 +239,7 @@ sub dump_table {
 			$str .= "<$tag";
 			$str .= " colspan=\"$col->{span}\"" if $col->{span};
 			$str .= ">";
-			$str .= escape($col->{text});
+			$str .= $self->dump_text($col->{text}, %opts);
 			$str .= "</$tag>";
 		}
 

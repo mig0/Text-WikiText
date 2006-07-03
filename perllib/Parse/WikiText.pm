@@ -190,15 +190,16 @@ my %DEFAULT_PARA_RE = (
 				$row->{heading} = 1
 					if ($i < @rows - 2) && ($rows[$i+1] =~ /^[+-]+$/);
 
-				$rows[$i] =~ s/^\|\s*|\s*\|$//g;
+				$rows[$i] =~ s/^\||\|$//g;
 
 				my $span = 1;
-				foreach my $col (split /\s*\|\s*/, $rows[$i]) {
+				foreach my $col (split /\|/, $rows[$i]) {
 					if ($col eq '') {
 						++$span;
 
 					} else {
-						my $column = { text => $col };
+						$col =~ s/^\s+//; $col =~ s/\s+$//;
+						my $column = { text => $self->parse_paragraph($col) };
 						$column->{span} = $span if $span > 1;
 						push @{$row->{cols}}, $column;
 
