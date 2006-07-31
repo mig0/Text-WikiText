@@ -45,6 +45,7 @@ sub show_usage (;$) {
 			-f --format NAME       specify format (default: $options{format})
 			-t --title NAME        set title (default: $options{title})
 			-F --full-page         form standard page, i.e. <html>...</html>
+			-l --flat-lists        use <li>...</li> instead of <li><p>...</p></li>
 			-V --no-verbatim       do not include verbatim blocks in output
 			-H --heading-offset N  set heading offset (default: 0)
 
@@ -60,6 +61,7 @@ GetOptions(
 	'f|format=s'         => \$options{format},
 	't|title=s'          => \$options{title},
 	'F|full-page'        => \$options{full_page},
+	'l|flat-lists'       => \$options{flat_lists},
 	'V|no-verbatim'      => \$options{no_verbatim},
 	'H|heading-offset=i' => \$options{heading_offset},
 ) or show_usage(1);
