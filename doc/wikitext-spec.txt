@@ -410,7 +410,7 @@ HTML Output::
     <div class="sample">
       <blockquote><p>A language that doesn't affect the way you think
       about programming, is not worth knowing.</p></blockquote>
-     
+
       <p>-- Alan Perlis</p>
     </div>
   }}

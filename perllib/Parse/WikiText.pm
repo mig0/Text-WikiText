@@ -329,7 +329,10 @@ sub parse_parlike {
 
 	local $_;
 
-	while (defined ($_ = $input->peek)) {
+	while (
+        defined ($_ = $input->peek)
+        || (defined $close && defined ($_ = $input->readline) && /^\s*$/)
+    ) {
 		last if !defined $close && defined $parbreak && /^$parbreak/;
 
 		$last = defined $close
