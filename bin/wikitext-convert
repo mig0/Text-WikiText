@@ -28,9 +28,13 @@ use Getopt::Long qw(:config no_ignore_case require_order bundling);
 my %options = (
 	format => 'HTML',
 	full_page => 0,
+	title => 'WikiText Converted Page',
+	author => 'Unknown',
+
 	no_verbatim => 0,
 	heading_offset => 0,
-	title => 'WikiText converted page',
+
+	flat_lists => 0,
 );
 
 sub show_usage (;$) {
@@ -43,27 +47,33 @@ sub show_usage (;$) {
 		Options:
 			-h --help              show this usage
 			-f --format NAME       specify format (default: $options{format})
-			-t --title NAME        set title (default: $options{title})
+
 			-F --full-page         form standard page, i.e. <html>...</html>
-			-l --flat-lists        use <li>...</li> instead of <li><p>...</p></li>
+			-t --title NAME        set title (default: $options{title})
+			-a --author NAME       set author (default: $options{author})
+
 			-V --no-verbatim       do not include verbatim blocks in output
 			-H --heading-offset N  set heading offset (default: 0)
 
-		Note, only HTML format is currently supported.
+			-l --flat-lists        use <li>...</li> instead of <li><p>...</p></li>
 	};
 	$usage =~ s/^\n//; $usage =~ s/^\t\t?//mg;
 	print $out $usage;
-	exit $is_error;   
+	exit $is_error;
 }
 
 GetOptions(
 	'h|help'             => sub { show_usage(0) },
 	'f|format=s'         => \$options{format},
-	't|title=s'          => \$options{title},
+
 	'F|full-page'        => \$options{full_page},
-	'l|flat-lists'       => \$options{flat_lists},
+	't|title=s'          => \$options{title},
+	'a|author=s'         => \$options{author},
+
 	'V|no-verbatim'      => \$options{no_verbatim},
 	'H|heading-offset=i' => \$options{heading_offset},
+
+	'l|flat-lists'       => \$options{flat_lists},
 ) or show_usage(1);
 
 print Parse::WikiText->new->convert(\*ARGV, %options);

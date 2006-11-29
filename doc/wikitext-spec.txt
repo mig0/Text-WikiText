@@ -8,11 +8,11 @@ WikiText formatted documents strive to be easily readable by humans,
 judiciously using whitespace and special characters for formatting,
 and not cluttering the text with an abundance of markup tags.
 
-WikiText documents can be converted to other formats, such as HTML,
-with relative ease.
+WikiText documents can be converted to other formats, such as HTML or
+Latex, with relative ease.
 
 
-= Overview =
+= Document Structure =
 
 A WikiText document consists of sections, environments, and
 paragraphs.  Sections define the coarsest structure of the document,
@@ -21,10 +21,7 @@ finer structure of the document, and can contain other environments
 and paragraphs.  Paragraphs are the basic elements of a document, and
 contain the actual text, associated with a certain meaning.
 
-
-= Document Structure =
-
-Documents can be divided into sections.  Each section consists of a
+A document is divided into sections.  Each section consists of a
 heading and a list of environments or paragraphs.  A section extends
 from its heading to the beginning of the next section, or the end of
 the document.
@@ -61,13 +58,13 @@ formatted with inline markup.  Inline markup is defined for
   o Emphasis,
   o Strong,
   o Underline,
-  o Strikethrough, and
+  o Strikeout, and
   o Typewriter font.
 
 
-== Inline Markup ==
+= Inline Markup =
 
-=== Text Formatting ===
+== Text Formatting ==
 
 Text formatting tags must enclose the formatted text without
 intermediate whitespace.  The opening character must be preceded by
@@ -77,40 +74,40 @@ whitespace, a closing sentence character (".", "!", "?", ",", ":",
 ";", etc) or the end-of-paragraph.
 
 Valid inline formatting tags are "/" for emphasis, "*" for strong, "_"
-for underline, "-" for strikethrough, and "{}" for typewriter font.
+for underline, "-" for strikeout, and "{}" for typewriter font.
 
-Conformance Note:: Underline and strikethrough tags are not allowed in
-the strict variants of HTML.
+Note:: Underline and strikeout are not allowed in strict variants of
+HTML.  Strikeout in Latex output requires the {sout} package.
+External links in Latex require the {url} and optionally the
+{hyperref} package.
 
 Example::
 
   | A -big- /small/ sample paragraph with *simple* text _formatting_
   | and a bit of {typewriter} font.
 
-HTML Output::
+Output::
 
-  {{
-    <div class="sample">
-      <p>A <strike>big</strike> <em>small</em> sample paragraph with
-      <strong>simple</strong> text <u>formatting</u> and a bit of
-      <tt>typewriter</tt> font.</p>
-    </div>
-  }}
+  > A -big- /small/ sample paragraph with *simple* text _formatting_
+  > and a bit of {typewriter} font.
 
 
-=== Links ===
+== Links ==
 
-Links are generated with the "[target]" syntax.  A link can point to
-other sections in the same document (see also [#Sections]), external
-objects, and images.  A heuristic decides how the link is generated.
+Links are denoted by enclosing the link target in square brackets ("["
+and "]").  A link can point to other sections in the same document
+(see also section [#Sections]), external objects, and images.  If the
+type of the link is not mentioned explicitly, it is determined from
+the link target.
 
-If the heuristic goes wrong, the link type can be set explicitly by
-adding a control character after the opening bracket.  The "[>url]"
-syntax indicates an external link, "[#section]" indicates an internal
-link, and "[=image]" includes the image directly.
+The type of the link can be set explicitly by adding a control
+character after the opening bracket.  A greater-than character
+("[>url]") indicates an external link, a hash-mark ("[#section]")
+indicates an internal link, and an equal-sign ("[=image]") includes
+the linked object directly.
 
-A link or image description can be specified by adding a vertical
-bar ("|") and the description after the link target.  If no link
+A link or image description can be specified by adding a vertical bar
+and the description after the link target ("[url|title]").  If no link
 description is given, the target will be used.
 
 Incomplete link targets are automatically completed by adding
@@ -121,17 +118,13 @@ Example::
   | This is a simple [http://nowhere.org/|link].  Another link to
   | [google.com].
 
-HTML Output::
+Output::
 
-  {{
-    <div class="sample">
-      This is a simple <a href="http://nowhere.org/">link</a>.  Another
-      link to <a href="http://google.com/">google.com</a>.
-    </div>
-  }}
+  > This is a simple [http://nowhere.org/|link].  Another link to
+  > [google.com].
 
 
-=== Verbatim Text ===
+== Verbatim Text ==
 
 A section of text enclosed in a double pair of curly braces is copied
 verbatim to the output, without replacing markup or HTML control
@@ -141,22 +134,14 @@ Example::
 
   | <em>substituted</em> and {{<em>verbatim *stuff*</em>}}
 
-HTML Output::
 
-  {{
-    <div class="sample">
-      &lt;em&gt;substituted&lt;/em&gt; and <em>verbatim *stuff*</em>
-    </div>
-  }}
-
-
-== Paragraphs and Paragraph-like Blocks ==
+= Paragraphs and Paragraph-like Blocks =
 
 There are different types of paragraphs.  The type of each paragraph
 can be determined from its first line.
 
 
-=== Ordinary Paragraphs ===
+== Ordinary Paragraphs ==
 
 Text in ordinary paragraphs is subject to automatic line breaking, and
 may be formatted using inline markup.  Ordinary paragraphs can
@@ -166,10 +151,7 @@ Paragraphs end with a single empty line, or when a line with less
 indentation than the paragraph is encountered.
 
 If the first line of a paragraph contains two colons in a row ("::"),
-the text before is taken to be the paragraph heading.  If the heading
-is directly followed by a newline, the heading will stand on a line by
-itself in the output, otherwise it will be followed directly by the
-paragraph text.
+the text before is taken to be the paragraph heading.
 
 Example::
 
@@ -178,25 +160,22 @@ Example::
   | Heading::
   | A lot of text in the second paragraph.
 
-HTML Output::
+Output::
 
-  {{
-    <div class="sample">
-      <p>First simple paragraph.</p>
-      <p><b>Heading</b><br />
-      A lot of text in the second paragraph.</p>
-    </div>
-  }}
+  > First simple paragraph.
+  >
+  > Heading::
+  > A lot of text in the second paragraph.
 
 
-=== Preformatted Blocks ===
+== Preformatted Blocks ==
 
 Text in preformatted blocks in not subject automatic line breaking and
 is set using a typewriter font.  It can, however, still be formatted
 using inline markup.
 
 Preformatted blocks start with a single curly, opening brace ("{"),
-followed by a space or line break, and ends with a single curly,
+followed by a space or line break, and end with a single curly,
 closing brace ("}"), followed by a line break.
 
 Contained lines must be indented at least as far as the opening brace.
@@ -204,21 +183,19 @@ Contained lines must be indented at least as far as the opening brace.
 Example::
 
   | {
-  |   Hi there!
-  |           ^-- *exclamation mark*
+  | Hi there!
+  |         ^-- *exclamation mark*
   | }
 
-HTML Output::
+Output::
 
-  {{
-    <div class="sample">
-  <pre>Hi there!
-          ^-- <strong>exclamation mark</strong></pre>
-    </div>
-  }}
+  > {
+  > Hi there!
+  >         ^-- *exclamation mark*
+  > }
 
 
-=== Code Blocks ===
+== Code Blocks ==
 
 Code blocks contain material like source code or shell session
 records.  The content is not subject to automatic line breaking, and
@@ -236,18 +213,14 @@ Example::
   | | +------+
 
 
-HTML output::
+Output::
 
-  {{
-    <div class="sample">
-  <pre>+------+
-  | w00t |
-  +------+</pre>
-    </div>
-  }}
+  > | +------+
+  > | | w00t |
+  > | +------+
 
 
-=== Tables ===
+== Tables ==
 
 Tabular material is delimited by a line containing only plus- ("+") and
 minus-signs ("-") at the front, and an empty line at the end.  The
@@ -271,26 +244,23 @@ Example::
   | | Strong        | *some words* |
   | | Typewriter    | {some words} |
   | | Underline     | _some words_ |
-  | | Strikethrough | -some words- |
+  | | Strikeout     | -some words- |
   | +---------------+--------------+
 
-HTML Output::
+Output::
 
-  {{
-    <div class="sample">
-      <table>
-        <tr><th>Effect</th><th>Markup</th></tr>
-        <tr><td>Emphasis</td><td><em>some words</em></td></tr>
-        <tr><td>Strong</td><td><strong>some words</strong></td></tr>
-        <tr><td>Typewriter</td><td><tt>some words</tt></td></tr>
-        <tr><td>Underline</td><td><u>some words</u></td></tr>
-        <tr><td>Strikethrough</td><td><strike>some words</strike></td></tr>
-      </table>
-    </div>
-  }}
+  > +---------------+--------------+
+  > | Effect        | Markup       |
+  > +---------------+--------------+
+  > | Emphasis      | /some words/ |
+  > | Strong        | *some words* |
+  > | Typewriter    | {some words} |
+  > | Underline     | _some words_ |
+  > | Strikeout     | -some words- |
+  > +---------------+--------------+
 
 
-=== Horizontal Rules ===
+== Horizontal Rules ==
 
 A line consisting of three or more dashes ("-"), followed immediately
 by a newline, generates a horizontal rule.
@@ -299,16 +269,12 @@ Example::
 
   | ---
 
-HTML Output::
+Output::
 
-  {{
-    <div class="sample">
-      <hr />
-    </div>
-  }}
+  > ---
 
 
-=== Verbatim Blocks ===
+== Verbatim Blocks ==
 
 Verbatim blocks are used to encapsulate code already in the output
 format.  The complete block is copied verbatim to the output.
@@ -326,19 +292,10 @@ Example::
   |   <address>Me, Myself and I, no@whe.re</address>
   | }}
 
-HTML Output::
-
-  {{
-    <div class="sample">
-      <address>Me, Myself and I, no@whe.re</address>
-    </div>
-  }}
-
 
 == Alternative Block Syntax ==
 
-All paragraph-like blocks can also be written using a single, unified
-syntax.
+All paragraph-like blocks can also be written using a unified syntax.
 
 A block begins with the block type, optionally preceded by the word
 "begin" and a list of modifier words, written in parentheses ("(" and
@@ -357,7 +314,7 @@ is equivalent to
   | | void* memfrob(void* s, size_t n);
 
 Comment blocks are only available using this alternative syntax.
-Comments are skipped completely when converting to html.
+Comments are skipped completely when converting to the output format.
 
 Example::
 
@@ -366,26 +323,20 @@ Example::
   | (end)
 
 
-== Environments ==
+= Environments =
 
 Environment markup is only recognized at the beginning of a new
 paragraph.  The environment markup must be separated from the
 paragraph text by at least one space or line break.  This is necessary
 to disambiguate certain environments from inline markup, and is
-required for other environments for consistency.
+required for all environments for consistency.
 
 List markup is handled a bit differently to faciliate compact lists of
 short items. If the previous paragraph was part of a list environment
 of the same type, the paragraph separating empty line may be omitted.
 
-Example::
 
-  | * item 1
-  | * item 2
-  | * item 3
-
-
-=== Quotations ===
+== Quotations ==
 
 A paragraph starting with a greater-than sign (">") introduces a
 quotation.  Subsequent paragraphs belong to the same item as long as
@@ -404,19 +355,15 @@ Example::
   |
   | -- Alan Perlis
 
-HTML Output::
+Output::
 
-  {{
-    <div class="sample">
-      <blockquote><p>A language that doesn't affect the way you think
-      about programming, is not worth knowing.</p></blockquote>
-
-      <p>-- Alan Perlis</p>
-    </div>
-  }}
+  > > A language that doesn't affect the way you think about
+  > > programming, is not worth knowing.
+  >
+  > -- Alan Perlis
 
 
-=== Bullet Lists ===
+== Bullet Lists ==
 
 A paragraph starting with an asterisk ("*"), a dash ("-") or a small O
 ("o"), followed by a space or line break, starts a new bullet list
@@ -431,24 +378,16 @@ All item in a bullet list must use the same bullet character.
 
 Example::
 
-  | * item 1
-  | * item 2
-  | * item 3
+  | * If you think you are beaten, you are.
+  | * If you think you dare not, you don't.
 
-HTML Output::
+Output::
 
-  {{
-    <div class="sample">
-      <ul>
-        <li><p>item 1</p></li>
-        <li><p>item 2</p></li>
-        <li><p>item 3</p></li>
-      </ul>
-    </div>
-  }}
+  > * If you think you are beaten, you are.
+  > * If you think you dare not, you don't.
 
 
-=== Numbered Lists ===
+== Numbered Lists ==
 
 A paragraph starting with a hash mark ("#") followed by a space or
 line break, starts a new numbered list item.  Subsequent paragraphs
@@ -465,24 +404,18 @@ not need to be separated by two line breaks in a row.
 
 Example::
 
-  | # item 1
-  | # item 2
-  | # item 3
+  | # tweak
+  | # twiddle
+  | # frob
 
-HTML Output::
+Output::
 
-  {{
-    <div class="sample">
-      <ol>
-        <li><p>item 1</p></li>
-        <li><p>item 2</p></li>
-        <li><p>item 3</p></li>
-      </ol>
-    </div>
-  }}
+  > # tweak
+  > # twiddle
+  > # frob
 
 
-=== Definition Lists ===
+== Definition Lists ==
 
 A paragraph starting with a colon (":") starts a new definition list
 item.  The term and the definition text are separated by another
@@ -495,29 +428,22 @@ not need to be separated by two line breaks in a row.
 
 Example::
 
-  | :some words: definition
-  | :other words: a longer
-  |   definition
-  | :a very long term:
-  |   definition begins here
+  | :foo: A generic name.
+  | :bar: Another generic name.
+  |   Much the same as "foo".
+  | :baz, quu, quuz, quux:
+  |   The rest of the bunch.
 
-HTML Output::
+Output::
 
-  {{
-    <div class="sample">
-      <dl>
-        <dt>some words</dt>
-        <dd><p>definition</p></dd>
-        <dt>other words</dt>
-        <dd><p>a longer definition</p></dd>
-        <dt>a very long term</dt>
-        <dd><p>definitition begins here</p></dd>
-      </dl>
-    </div>
-  }}
+  > :foo: A generic name.
+  > :bar: Another generic name.
+  >   Much the same as "foo".
+  > :baz, quu, quuz, quux:
+  >   The rest of the bunch.
 
 
-== Sections ==
+= Sections =
 
 Sections consist of a heading, followed by a list of environments or
 paragraphs.
@@ -526,32 +452,10 @@ The heading begins with one or more equal-signs ("=") and ends with an
 empty line, or the same number of equal-signs at the end of a line.
 The number of equal-signs indicates the level of the section.
 
-The heading can optionally contain square brackets after the opening,
-and before the trailing row of equal-signs, to indicate that the
-heading is only structural, and should not be visible in the output.
-
-In HTML output, headings automatically include an anchor tag, that can
-be used to link to the section, using the heading as link target.
-Invisible headings produce only an achor tag.
+Headings are automatically available as link targets.
 
 Example::
 
   | = heading level 1 =
   |
   | == heading level 2 ==
-  |
-  | ==[ invisible heading ]==
-
-HTML Output::
-
-  {{
-    <div class="sample">
-      <a name="heading_level_1"></a>
-      <h1>heading level 1</h1>
-
-      <a name="heading_level_2"></a>
-      <h2>heading level 2</h2>
-
-      <a name="invisible_heading"></a>
-    </div>
-  }}
