@@ -115,6 +115,9 @@ my %DEFAULT_INLINE_RE = (
 			(my $style = $match) =~ s/^\[//;
 			my ($target, $label) = split /\|/, $text, 2;
 
+			$target =~ s/^\s+|\s+$//g;
+			$label =~ s/^\s+|\s+$//g if defined $label;
+
 			return {
 				type   => LINK,
 				label  => $label,
@@ -131,7 +134,7 @@ my %DEFAULT_PARA_RE = (
 		close  => undef,
 		code   => sub {
 			my ($self, $type, $text, $match) = @_;
-			$match =~ s/:://;
+			$match =~ s/\s*::\s//;
 
 			my $p = {
 				type => P,
@@ -150,7 +153,11 @@ my %DEFAULT_PARA_RE = (
 		close  => qr/(?:^|\s)}/,
 		code   => sub {
 			my ($self, $type, $text) = @_;
-			return { type => PRE, text => $self->parse_paragraph($text) };
+
+			return {
+				type => PRE,
+				text => $self->parse_paragraph($text)
+			};
 		},
 	},
 
@@ -247,17 +254,16 @@ my %DEFAULT_ENVIRONMENT_RE = (
 );
 
 my %DEFAULT_SECTION_RE = (
-	open   => qr/=+\[?\s/,
-	close  => qr/(?:^|\s)\]?=+|^$/,
+	open   => qr/=+\s/,
+	close  => qr/(?:^|\s)=+|^$/,
 	code   => sub {
 		my ($self, $type, $heading, $content, $match) = @_;
 
-		$heading =~ s/[\r\n]//g;
+		$heading =~ s/^\s+|\s+$//g;
 
 		return {
-			type	=> SECTION,
+			type    => SECTION,
 			level   => scalar $match =~ tr/=//,
-			hidden  => scalar $match =~ /\[/,
 			heading => $heading,
 			content => $content,
 		};
@@ -409,7 +415,7 @@ my $RE_ALL_ENV =
 sub parse_block_list {
 	my ($self, $input, $filter, $close, $parbreak) = @_;
 
-	my  @list = ();
+	my @list = ();
 	my $last;
 
 	local $_;
@@ -497,7 +503,7 @@ sub parse_block {
 sub parse_struct_list {
 	my ($self, $input) = @_;
 
-	my  @list = ();
+	my @list = ();
 	my $last;
 
 	local $_;

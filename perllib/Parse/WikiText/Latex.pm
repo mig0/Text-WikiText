@@ -14,7 +14,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-package Parse::WikiText::HTML;
+package Parse::WikiText::Latex;
 
 use strict;
 
@@ -50,12 +50,24 @@ my $RE_TLD = qr/
 	|za|zm|zw
 /x;
 
-
+# TODO: fix ~ and ^
 my %ENTITIES = (
-	'&' => '&amp;',
-	'<' => '&lt;',
-	'>' => '&gt;',
-	'"' => '&quot;',
+	'{' => '\{',
+	'}' => '\}',
+	'#' => '\#',
+	'_' => '\_',
+	'$' => '\$',
+	'%' => '\%',
+	'&' => '\&',
+
+	'>' => '$>$',
+	'<' => '$<$',
+	'|' => '$|$',
+
+	'^' => '\verb+^+',
+	'~' => '\verb+~+',
+
+	'\\' => '$\backslash$',
 );
 
 my $ENTITY_RE = join '|', map { quotemeta } keys %ENTITIES;
@@ -68,12 +80,29 @@ sub escape {
 	return $text;
 }
 
+# TODO: is it possible to escape these?
+my %URL_ENTITIES = (
+	'{'  => '',
+	'}'  => '',
+	'\\' => '',
+);
+
+my $URL_ENTITY_RE = join '|', map { quotemeta } keys %URL_ENTITIES;
+
+sub url_escape {
+	my $text = shift;
+
+	$text =~ s/$URL_ENTITY_RE/$URL_ENTITIES{$&}/ego;
+
+	return $text;
+}
+
 sub fill_in_link {
 	my ($self, $chunk) = @_;
 
 	if ($chunk->{style} eq '') {
 		# bitmap files
-		if ($chunk->{target} =~ /\.(png|jpg|jpeg|gif)$/) {
+		if ($chunk->{target} =~ /\.(eps|png|jpg|jpeg|gif)$/) {
 			$chunk->{style} = '=';
 
 		# network protocols
@@ -120,6 +149,7 @@ sub fill_in_link {
 	}
 }
 
+# TODO: does hyperref support labeled links?
 sub dump_text {
 	my ($self, $text, %opts) = @_;
 
@@ -133,36 +163,39 @@ sub dump_text {
 			$str .= escape($chunk->{text});
 
 		} elsif ($chunk->{type} eq EMPHASIS) {
-			$str .= '<em>' . escape($chunk->{text}) . '</em>';
+			$str .= '\emph{' . escape($chunk->{text}) . '}';
 
 		} elsif ($chunk->{type} eq STRONG) {
-			$str .= '<strong>' . escape($chunk->{text}) . '</strong>';
+			$str .= '\textbf{' . escape($chunk->{text}) . '}';
 
 		} elsif ($chunk->{type} eq UNDERLINE) {
-			$str .= '<u>' . escape($chunk->{text}) . '</u>';
+			$str .= '\underbar{' . escape($chunk->{text}) . '}';
 
 		} elsif ($chunk->{type} eq STRIKE) {
-			$str .= '<strike>' . escape($chunk->{text}) . '</strike>';
+			$str .= '\textst{' . escape($chunk->{text}) . '}';
 
 		} elsif ($chunk->{type} eq TYPEWRITER) {
-			$str .= '<tt>' . escape($chunk->{text}) . '</tt>';
+			$str .= '\texttt{' . escape($chunk->{text}) . '}';
 
 		} elsif ($chunk->{type} eq LINK) {
 			$self->fill_in_link($chunk);
 
 			if ($chunk->{style} eq '>') {
-				$str .= '<a href="' . $chunk->{target} . '">'
-					. escape($chunk->{label})
-					. '</a>';
+				if ($chunk->{label} ne $chunk->{target}) {
+					$str .= escape($chunk->{label})
+						. ' \footnote{' . escape($chunk->{label}) . ': '
+						. '\url{' . url_escape($chunk->{target}) . '}'
+						. '}';
+				} else {
+					$str .= '\url{' . url_escape($chunk->{target}) . '}';
+				}
 
 			} elsif ($chunk->{style} eq '=') {
-				$str .= '<img src="' . $chunk->{target}
-					. '" alt="' . $chunk->{label} . '" />';
+				$str .= '\includegraphics{' . $chunk->{target} . '}'
 
 			} elsif ($chunk->{style} eq '#') {
-				$str .= '<a href="#' . $chunk->{target} . '">'
-					. escape($chunk->{label})
-					. '</a>';
+				$str .= '\ref{' . $chunk->{target} . '}~' 
+					. escape($chunk->{label});
 
 			} else {
 				warn("Unrecognized link style '" . $chunk->{style} . "'.\n");
@@ -181,28 +214,29 @@ sub dump_paragraph {
 
 	my $text = '';
 
-	$text .= "<p>" unless $opts{no_p};
-
-	$text .= "<b>" . escape($para->{heading}) . "</b> "
+	$text .= "\\paragraph{" . escape($para->{heading}) . "} "
 		if defined $para->{heading};
 
 	$text .= $self->dump_text($para->{text}, %opts);
 
-	$text .= "</p>\n" unless $opts{no_p};
-	
 	return $text;
 }
 
 sub dump_code {
 	my ($self, $code, %opts) = @_;
 
-	return "<pre><code>" . escape($code->{text}) . "</code></pre>\n";
+	return "\\begin{verbatim}\n"
+		. $code->{text}
+		. "\\end{verbatim}\n";
 }
 
 sub dump_preformatted {
 	my ($self, $pre, %opts) = @_;
 
-	return "<pre>" . $self->dump_text($pre->{text}) . "</pre>\n";
+	my $str = $self->dump_text($pre->{text}, %opts);
+	$str =~ s/ /\\ /g;
+
+	return "{\\tt\\obeylines $str}\n";
 }
 
 sub dump_verbatim {
@@ -214,24 +248,35 @@ sub dump_verbatim {
 sub dump_table {
 	my ($self, $table, %opts) = @_;
 
-	my $str = "<table>\n";
+	my $ncols = 0;
+	map { my $c = @{$_->{cols}}; $ncols = $c if $c > $ncols; }
+		@{$table->{content}};
+
+	my $str = "\\begin{tabular}{|" . ('l|' x $ncols) . "}\n";
+	$str .= "\\hline\n";
 
 	foreach my $row (@{$table->{content}}) {
-		$str .= "<tr>";
+		my $first = 1;
 
-		my $tag = $row->{heading} ? "th" : "td";
 		foreach my $col (@{$row->{cols}}) {
-			$str .= "<$tag";
-			$str .= " colspan=\"$col->{span}\"" if $col->{span};
-			$str .= ">";
-			$str .= $self->dump_text($col->{text}, %opts);
-			$str .= "</$tag>";
-		}
+			$str .= ' & ' unless $first;
+			$first = 0;
 
-		$str .= "</tr>\n";
+			$str .= "\\multicolumn{$col->{span}}{|l|}{" if $col->{span};
+			$str .= "\\textbf{" if $row->{heading};
+
+			$str .= $self->dump_text($col->{text}, %opts);
+
+			$str .= "}" if $row->{heading};
+			$str .= "}" if $col->{span};
+		}
+		$str .= "\\\\\n";
+
+		$str .= "\\hline\n";
+		$str .= "\\hline\n" if $row->{heading};
 	}
 
-	$str .= "</table>\n";
+	$str .= "\\end{tabular}\n";
 
 	return $str;
 }
@@ -239,71 +284,55 @@ sub dump_table {
 sub dump_rule {
 	my ($self, $verb, %opts) = @_;
 
-	return "<hr />\n";
+	return "\\hrule\n";
 }
 
 sub dump_quotation {
 	my ($self, $quote, %opts) = @_;
 
-	return "<blockquote>\n" 
+	return "\\begin{quote}\n" 
 		. $self->dump_list($quote->{content}, %opts) 
-		. "</blockquote>\n"
-}
-
-sub _is_simple_p_list (@) {
-	foreach (@_) {
-		return 0 if @$_ > 1;
-		return 0 if $_->[0]->{type} ne P;
-		return 0 if defined $_->[0]->{heading};
-		return 0 if $_->[0]->{text} =~ /\n/;
-	}
-
-	return 1;
+		. "\\end{quote}\n"
 }
 
 sub dump_listing {
 	my ($self, $listing, %opts) = @_;
 
-	$opts{no_p} = 1 
-		if $opts{flat_lists} && _is_simple_p_list(@{$listing->{content}});
-
 	return
-		"<ul>\n" .
+		"\\begin{itemize}\n" .
 		join("", map {
-			"<li>\n" . $self->dump_list($_, %opts) . "</li>\n"
+			"\\item[*] " . $self->dump_list($_, %opts)
 		} @{$listing->{content}}) .
-		"</ul>\n";
+		"\\end{itemize}\n";
 }
 
 sub dump_enumeration {
 	my ($self, $enum, %opts) = @_;
 
-	$opts{no_p} = 1 
-		if $opts{flat_lists} && _is_simple_p_list(@{$enum->{content}});
-
 	return
-		"<ol>\n" .
+		"\\begin{enumerate}\n" .
 		join("", map {
-			"<li>\n" . $self->dump_list($_, %opts) . "</li>\n"
+			"\\item " . $self->dump_list($_, %opts)
 		} @{$enum->{content}}) .
-		"</ol>\n";
+		"\\end{enumerate}\n";
 }
 
 sub dump_description {
 	my ($self, $descr, %opts) = @_;
 
-	$opts{no_p} = 1 
-		if $opts{flat_lists} && _is_simple_p_list(map { $_->[1] } @{$descr->{content}});
-
 	return
-		"<dl>\n" .
-		join("\n", map {
-			"<dt>$_->[0]</dt>\n<dd>\n" 
-				. $self->dump_list($_->[1], %opts)
-				. "</dd>\n"
+		"\\begin{description}\n" .
+		join("", map {
+			"\\item[$_->[0]] " . $self->dump_list($_->[1], %opts)
 		} @{$descr->{content}}) .
-		"</dl>\n";
+		"\\end{description}\n";
 }
+
+my @SECTION = qw(
+	\chapter
+	\section \subsection \subsubsection
+	\paragraph \subparagraph
+);
 
 sub dump_section {
 	my ($self, $heading, %opts) = @_;
@@ -314,12 +343,10 @@ sub dump_section {
 	my $anchor = $label;
 	$anchor =~ s/\W/_/g;
 
-	return 
-		"<a name=\"$anchor\"></a>\n"
-		. "<h$level>$label</h$level>\n\n"
+	return $SECTION[$level] . "{$label}\n" 
+		. "\\label{$anchor}\n\n"
 		. $self->dump_list($heading->{content}, %opts);
 }
-
 
 sub dump_list {
 	my ($self, $list, %opts) = @_;
@@ -386,24 +413,32 @@ sub dump {
 	my $str = '';
 
 	if ($opts{full_page}) {
-		my $title = escape($opts{title}) || 'No Title';
-		my $author = escape($opts{author}) || 'Unknown';
+		my $class = escape($opts{class}) || "article";
+		my $title = escape($opts{title}) || "No Title";
+		my $author = escape($opts{author}) || "Unknown";
 
 		$str .= <<EOF;
-<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN' "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html>
-<head>
-  <title>$title</title>
-  <meta name="author" content="$author" />
-</head>
-<body>
+\\documentclass{$class}
+
+\\usepackage[utf8]{inputenc}
+\\usepackage{soul}
+\\usepackage{hyperref}
+\\usepackage{url}
+
+\\author{$author}
+\\title{$title}
+
+\\begin{document}
+\\maketitle
+\\tableofcontents
+\\newpage
 
 EOF
 	}
 
 	$str .= $self->dump_list($list, %opts);
 
-	$str .= "</body>\n</html>\n"
+	$str .= "\\end{document}\n"
 		if $opts{full_page};
 
 	return $str;
