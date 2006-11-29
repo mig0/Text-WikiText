@@ -79,7 +79,7 @@ sub fill_in_link {
 			$chunk->{style} = '>';
 
 			# common top level domains
-		} elsif ($chunk->{target} =~ /^(\w+\.){1,}$RE_TLD/) {
+		} elsif ($chunk->{target} =~ /^(\w+\.){1,}$RE_TLD(\/|$)/) {
 			$chunk->{style} = '>';
 
 			# whitespace in urls is bad
@@ -108,7 +108,7 @@ sub fill_in_link {
 		} elsif ($chunk->{target} =~ /^ftp\./) {
 			$chunk->{target} = "ftp://" . $chunk->{target};
 
-		} elsif ($chunk->{target} =~ /^(\w+\.){1,}$RE_TLD/) {
+		} elsif ($chunk->{target} =~ /^(\w+\.){1,}$RE_TLD(\/|$)/) {
 			$chunk->{target} = "http://" . $chunk->{target};
 		}
 
