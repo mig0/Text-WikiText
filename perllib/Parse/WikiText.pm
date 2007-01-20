@@ -563,15 +563,18 @@ sub convert {
 	my ($self, $string_or_stream, %opts) = @_;
 
 	my $output_class = $opts{format} || 'HTML';
-	$output_class = "Parse::WikiText::$output_class"
-		unless ref $output_class || $output_class =~ /::/;
+	my $output_object = ref($output_class) && $output_class;
 
-	if (ref $output_class eq '') {
+	$output_class = "Parse::WikiText::Output::$output_class"
+		unless $output_object || $output_class =~ /::/;
+
+	unless ($output_object) {
 		eval "require $output_class" or die $@;
+		$output_object = $output_class->new;
 	}
 
 	my $parsed_structures = $self->parse($string_or_stream);
-	$output_class->dump($parsed_structures, %opts);
+	$output_object->dump($parsed_structures, %opts);
 }
 
 1;

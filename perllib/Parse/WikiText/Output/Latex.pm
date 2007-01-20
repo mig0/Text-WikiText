@@ -1,4 +1,4 @@
-# WikiText parser modules, Copyright (C) 2006 Enno Cramer, Mikhael Goikhman
+# WikiText parser modules, Copyright (C) 2006-7 Enno Cramer, Mikhael Goikhman
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the Perl Artistic License or the GNU General
@@ -14,44 +14,17 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-package Parse::WikiText::Latex;
+package Parse::WikiText::Output::Latex;
 
 use strict;
+use warnings;
+
+use base 'Parse::WikiText::Output';
 
 use Parse::WikiText ':types';
 
-my $RE_TLD = qr/
-	com|edu|gov|int|mil|net|org
-	|aero|biz|coop|info|museum|name|pro
-	|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|az|ax
-	|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz
-	|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz
-	|de|dj|dk|dm|do|dz
-	|ec|ee|eg|eh|er|es|et|eu
-	|fi|fj|fk|fm|fo|fr
-	|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy
-	|hk|hm|hn|hr|ht|hu
-	|id|ie|il|im|in|io|iq|ir|is|it
-	|je|jm|jo|jp
-	|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz
-	|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly
-	|ma|mc|md|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz
-	|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz
-	|om
-	|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py
-	|qa
-	|re|ro|ru|rw
-	|sa|sb|sc|sd|se|sg|sh|si|sj|sk|sl|sm|sn|so|sr|st|sv|sy|sz
-	|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz
-	|ua|ug|uk|um|us|uy|uz
-	|va|vc|ve|vg|vi|vn|vu
-	|wf|ws
-	|ye|yt|yu
-	|za|zm|zw
-/x;
-
 # TODO: fix ~ and ^
-my %ENTITIES = (
+sub entities {
 	'{' => '\{',
 	'}' => '\}',
 	'#' => '\#',
@@ -68,16 +41,6 @@ my %ENTITIES = (
 	'~' => '\verb+~+',
 
 	'\\' => '$\backslash$',
-);
-
-my $ENTITY_RE = join '|', map { quotemeta } keys %ENTITIES;
-
-sub escape {
-	my $text = shift;
-
-	$text =~ s/$ENTITY_RE/$ENTITIES{$&}/ego;
-
-	return $text;
 }
 
 # TODO: is it possible to escape these?
@@ -97,58 +60,6 @@ sub url_escape {
 	return $text;
 }
 
-sub fill_in_link {
-	my ($self, $chunk) = @_;
-
-	if ($chunk->{style} eq '') {
-		# bitmap files
-		if ($chunk->{target} =~ /\.(eps|png|jpg|jpeg|gif)$/) {
-			$chunk->{style} = '=';
-
-		# network protocols
-		} elsif ($chunk->{target} =~ /^(http|ftp|news|mailto|irc):/) {
-			$chunk->{style} = '>';
-
-		# common top level domains
-		} elsif ($chunk->{target} =~ /^(\w+\.){1,}$RE_TLD(\/|$)/) {
-			$chunk->{style} = '>';
-
-		# whitespace in urls is bad
-		} elsif ($chunk->{target} =~ /\s/) {
-			$chunk->{style} = '#';
-
-		# fallback
-		} else {
-			$chunk->{style} = '>';
-		}
-	}
-
-	$chunk->{label} ||= $chunk->{target};
-
-	# outside link, without protocol and no directory identifier
-	if ($chunk->{style} eq '>'
-		&& $chunk->{target} !~ /^\w+:/
-		&& $chunk->{target} !~ m,^(/|\.),
-	) {
-		if ($chunk->{target} =~ /@/) {
-			$chunk->{target} = "mailto:" . $chunk->{target};
-
-		} elsif ($chunk->{target} =~ /^www\./) {
-			$chunk->{target} = "http://" . $chunk->{target};
-
-		} elsif ($chunk->{target} =~ /^ftp\./) {
-			$chunk->{target} = "ftp://" . $chunk->{target};
-
-		} elsif ($chunk->{target} =~ /^(\w+\.){1,}$RE_TLD(\/|$)/) {
-			$chunk->{target} = "http://" . $chunk->{target};
-		}
-
-		if ($chunk->{target} =~ /\.$RE_TLD$/) {
-			$chunk->{target} .= '/';
-		}
-	}
-}
-
 # TODO: does hyperref support labeled links?
 sub dump_text {
 	my ($self, $text, %opts) = @_;
@@ -160,30 +71,30 @@ sub dump_text {
 				unless $opts{no_verbatim};
 
 		} elsif ($chunk->{type} eq TEXT) {
-			$str .= escape($chunk->{text});
+			$str .= $self->escape($chunk->{text});
 
 		} elsif ($chunk->{type} eq EMPHASIS) {
-			$str .= '\emph{' . escape($chunk->{text}) . '}';
+			$str .= '\emph{' . $self->escape($chunk->{text}) . '}';
 
 		} elsif ($chunk->{type} eq STRONG) {
-			$str .= '\textbf{' . escape($chunk->{text}) . '}';
+			$str .= '\textbf{' . $self->escape($chunk->{text}) . '}';
 
 		} elsif ($chunk->{type} eq UNDERLINE) {
-			$str .= '\underbar{' . escape($chunk->{text}) . '}';
+			$str .= '\underbar{' . $self->escape($chunk->{text}) . '}';
 
 		} elsif ($chunk->{type} eq STRIKE) {
-			$str .= '\textst{' . escape($chunk->{text}) . '}';
+			$str .= '\textst{' . $self->escape($chunk->{text}) . '}';
 
 		} elsif ($chunk->{type} eq TYPEWRITER) {
-			$str .= '\texttt{' . escape($chunk->{text}) . '}';
+			$str .= '\texttt{' . $self->escape($chunk->{text}) . '}';
 
 		} elsif ($chunk->{type} eq LINK) {
 			$self->fill_in_link($chunk);
 
 			if ($chunk->{style} eq '>') {
 				if ($chunk->{label} ne $chunk->{target}) {
-					$str .= escape($chunk->{label})
-						. ' \footnote{' . escape($chunk->{label}) . ': '
+					$str .= $self->escape($chunk->{label})
+						. ' \footnote{' . $self->escape($chunk->{label}) . ': '
 						. '\url{' . url_escape($chunk->{target}) . '}'
 						. '}';
 				} else {
@@ -195,7 +106,7 @@ sub dump_text {
 
 			} elsif ($chunk->{style} eq '#') {
 				$str .= '\ref{' . $chunk->{target} . '}~' 
-					. escape($chunk->{label});
+					. $self->escape($chunk->{label});
 
 			} else {
 				warn("Unrecognized link style '" . $chunk->{style} . "'.\n");
@@ -214,7 +125,7 @@ sub dump_paragraph {
 
 	my $text = '';
 
-	$text .= "\\paragraph{" . escape($para->{heading}) . "} "
+	$text .= "\\paragraph{" . $self->escape($para->{heading}) . "} "
 		if defined $para->{heading};
 
 	$text .= $self->dump_text($para->{text}, %opts);
@@ -237,12 +148,6 @@ sub dump_preformatted {
 	$str =~ s/ /\\ /g;
 
 	return "{\\tt\\obeylines $str}\n";
-}
-
-sub dump_verbatim {
-	my ($self, $verb, %opts) = @_;
-
-	return $verb->{text};
 }
 
 sub dump_table {
@@ -282,7 +187,7 @@ sub dump_table {
 }
 
 sub dump_rule {
-	my ($self, $verb, %opts) = @_;
+	my ($self, $rule, %opts) = @_;
 
 	return "\\hrule\n";
 }
@@ -348,76 +253,12 @@ sub dump_section {
 		. $self->dump_list($heading->{content}, %opts);
 }
 
-sub dump_list {
-	my ($self, $list, %opts) = @_;
+sub construct_full_page {
+	my ($self, $page, %opts) = @_;
 
-	my $str = '';
+	my $class = $self->escape($opts{class} || "article");
 
-	my $first = 1;
-	foreach my $sect (@$list) {
-		$str .= "\n" unless $first;
-		$first = 0;
-
-		if ($sect->{type} eq SECTION) {
-			$str .= $self->dump_section($sect, %opts);
-
-		} elsif ($sect->{type} eq DESCRIPTION) {
-			$str .= $self->dump_description($sect, %opts);
-
-		} elsif ($sect->{type} eq ENUMERATION) {
-			$str .= $self->dump_enumeration($sect, %opts);
-
-		} elsif ($sect->{type} eq LISTING) {
-			$str .= $self->dump_listing($sect, %opts);
-
-		} elsif ($sect->{type} eq QUOTE) {
-			$str .= $self->dump_quotation($sect, %opts);
-
-		} elsif ($sect->{type} eq TABLE) {
-			$str .= $self->dump_table($sect, %opts);
-
-		} elsif ($sect->{type} eq RULE) {
-			$str .= $self->dump_rule($sect, %opts);
-
-		} elsif ($sect->{type} eq VERBATIM) {
-			$str .= $self->dump_verbatim($sect, %opts)
-				unless $opts{no_verbatim};
-
-		} elsif ($sect->{type} eq PRE) {
-			$str .= $self->dump_preformatted($sect, %opts);
-
-		} elsif ($sect->{type} eq CODE) {
-			$str .= $self->dump_code($sect, %opts);
-
-		} elsif ($sect->{type} eq P) {
-			$str .= $self->dump_paragraph($sect, %opts);
-
-		} elsif ($sect->{type} eq COMMENT) {
-			# nada
-
-		} else {
-			warn(
-				"Unrecognized block type '"
-				. $sect->{type} . "' defined on line "
-				. $sect->{line} . ".\n"
-			);
-		}
-	}
-
-	return $str;
-}
-
-sub dump {
-	my ($self, $list, %opts) = @_;
-
-	my $str = '';
-
-	if ($opts{full_page}) {
-		my $class = escape($opts{class}) || "article";
-		my $title = escape($opts{title}) || "No Title";
-		my $author = escape($opts{author}) || "Unknown";
-
-		$str .= <<EOF;
+	return <<EOS;
 \\documentclass{$class}
 
 \\usepackage[utf8]{inputenc}
@@ -425,23 +266,17 @@ sub dump {
 \\usepackage{hyperref}
 \\usepackage{url}
 
-\\author{$author}
-\\title{$title}
+\\author{$opts{escaped_author}}
+\\title{$opts{escaped_title}}
 
 \\begin{document}
 \\maketitle
 \\tableofcontents
 \\newpage
 
-EOF
-	}
-
-	$str .= $self->dump_list($list, %opts);
-
-	$str .= "\\end{document}\n"
-		if $opts{full_page};
-
-	return $str;
+$page
+\\end{document}
+EOS
 }
 
 1;
