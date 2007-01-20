@@ -577,3 +577,175 @@ sub convert {
 1;
 
 __END__
+
+=head1 NAME
+
+Parse::WikiText - Simple Markup Conversion
+
+=head1 SYNOPSIS
+
+	use Parse::WikiText;
+
+	my $parser = Parse::WikiText->new;
+	my $document = $parser->parse(\*STDIN);
+
+	my $html = Parse::WikiText::Output::HTML->dump($document);
+	print $html;
+
+	# or
+
+	print Parse::WikiText->new->convert(\*STDIN, { format => 'Latex' });
+
+=head1 DESCRIPTION
+
+Parse::WikiText provides a parser for the WikiText markup language,
+and output modules to convert parsed documents into other markup
+languages, such as HTML and Latex.
+
+=head1 METHODS
+
+The following methods are available:
+
+B<new>,
+B<parse>,
+B<convert>.
+
+=over 4
+
+=item B<new>
+
+Create a new WikiText parser object.
+
+=item B<parse> I<handle>
+
+=item B<parse> I<string>
+
+Parse a WikiText document from an IO::Handle or a string variable.
+The function returns the parsed document as a tree structure as
+defined below.
+
+=item B<convert> I<handle> [I<options>]
+
+=item B<convert> I<string> [I<options>]
+
+Parse and convert a WikiText document.	This method uses B<parse> to
+parse a WikiText document and immediately converts it to the specified
+output format.
+
+The I<options> parameter is a hash reference specifying the output
+format and various output options.
+
+=over 4
+
+=item B<format>
+
+Specifies the output format.  Valid options are B<HTML> and B<Latex>.
+Defaults to B<HTML>.
+
+=item B<full_page>
+
+Specifies whether the outputted string should be a full document, or
+an embeddable document part.  This options decides whether the output
+module should generate document headers and footers.  Defaults to B<0>
+(omit document headers and footers).
+
+=item B<title>
+
+=item B<author>
+
+Specifies the output document title and author.	 The values are used
+only when B<full_page> is set.	Defaults are undefined.
+
+=item B<heading_offset>
+
+Specifies an optional offset applied to the level of all headings.	An
+offset of 1 will convert level 1 headings to level 2, level 2 headings
+to level 3, etc.  This option is useful when the output is embedded
+into other documents.  Defaults to B<0>.
+
+=item B<no_verbatim>
+
+Specifies whether verbatim blocks should be omitted from the output.
+Verbatim blocks can break the output document structure and thus
+should only be allowed from trusted sources.  Defaults to B<0>
+(include verbatim blocks).
+
+=item B<flat-lists> (HTML only)
+
+Specifies whether compact lists include additional paragraph elements.
+Applies to ul, ol, and dl elements.	 Defaults to B<0> (generate
+additional paragraph elements).
+
+Example:
+
+	<!-- normal output -->
+	<ul>
+	  <li><p>foo</p></li>
+	  <li><p>bar</p></li>
+	</ul>
+
+	<!-- flat output -->
+	<ul>
+	  <li>foo</li>
+	  <li>bar</li>
+	</ul>
+
+=back
+
+=back
+
+=head1 DOCUMENT TREE
+
+B<Note: The document structure might be redefined in the future.>
+
+A parsed WikiText document is an anonymous array of WikiText elements.
+Each element is an anonymous hash with various properties.	All
+elements have at least the field B<type>, used to identify the type of
+the element.
+
+Four categories of items are defined:
+
+=over 4
+
+=item B<Sections>
+
+SECTION
+
+Fields: B<level>, B<heading>, B<content>.
+
+=item B<Environments>
+
+QUOTE, LISTING, ENUMERATION, DESCRIPTION.
+
+Fields: B<content>.
+
+=item B<Paragraphs>
+
+TABLE, RULE, P, PRE, CODE, COMMENT, VERBATIM.
+
+Fields: B<text> (all but TABLE and RULE), B<content> (TABLE only).
+
+=item B<Formatting elements>
+
+EMPHASIS, STRONG, UNDERLINE, STRIKE, TYPEWRITER,
+LINK, TEXT, VERBATIM.
+
+Fields: B<text>.
+
+=back
+
+Sections can contain other sections, environments and paragraphs.
+Environments can contain other environments and paragraphs.
+Paragraphs can contain formatting elemens.	Formatting elements
+contain plain text.
+
+=head1 AUTHORS
+
+Enno Cramer, Mikhael Goikhman
+
+=head1 SEE ALSO
+
+L<wikitext-convert>,
+L<Parse::WikiText::Output>.
+
+=cut
