@@ -91,22 +91,21 @@ sub dump_text {
 		} elsif ($chunk->{type} eq LINK) {
 			$self->fill_in_link($chunk);
 
+			my $target = $self->escape($chunk->{target});
+			my $label = $self->escape($chunk->{label});
+
 			if ($chunk->{style} eq '>') {
-				if ($chunk->{label} ne $chunk->{target}) {
-					$str .= $self->escape($chunk->{label})
-						. ' \footnote{' . $self->escape($chunk->{label}) . ': '
-						. '\url{' . url_escape($chunk->{target}) . '}'
-						. '}';
+				if ($label ne $target) {
+					$str .= "$label \\footnote{$label: \\url{$target}}";
 				} else {
-					$str .= '\url{' . url_escape($chunk->{target}) . '}';
+					$str .= "\\url{$target}";
 				}
 
 			} elsif ($chunk->{style} eq '=') {
-				$str .= '\includegraphics{' . $chunk->{target} . '}'
+				$str .= "\\includegraphics{$target}";
 
 			} elsif ($chunk->{style} eq '#') {
-				$str .= '\ref{' . $chunk->{target} . '}~' 
-					. $self->escape($chunk->{label});
+				$str .= "\\ref{$target}~$label";
 
 			} else {
 				warn("Unrecognized link style '" . $chunk->{style} . "'.\n");
@@ -205,8 +204,8 @@ sub dump_listing {
 
 	return
 		"\\begin{itemize}\n" .
-		join("", map {
-			"\\item[*] " . $self->dump_list($_, %opts)
+		join("\n", map {
+			"\\item " . $self->dump_list($_, %opts)
 		} @{$listing->{content}}) .
 		"\\end{itemize}\n";
 }
@@ -216,7 +215,7 @@ sub dump_enumeration {
 
 	return
 		"\\begin{enumerate}\n" .
-		join("", map {
+		join("\n", map {
 			"\\item " . $self->dump_list($_, %opts)
 		} @{$enum->{content}}) .
 		"\\end{enumerate}\n";
@@ -227,7 +226,7 @@ sub dump_description {
 
 	return
 		"\\begin{description}\n" .
-		join("", map {
+		join("\n", map {
 			"\\item[$_->[0]] " . $self->dump_list($_->[1], %opts)
 		} @{$descr->{content}}) .
 		"\\end{description}\n";

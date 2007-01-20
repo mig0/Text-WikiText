@@ -58,9 +58,15 @@ sub dump_text {
 		} elsif ($chunk->{type} eq LINK) {
 			$self->fill_in_link($chunk);
 
+			my $target = $self->escape($chunk->{target});
+			my $label = $self->escape($chunk->{label});
+
 			if ($chunk->{style} eq '>') {
-				$str .= 'L<' . $chunk->{target} . '|'
-					. $self->escape($chunk->{label}) . '>';
+				if ($label ne $target) {
+					$str .= "$label (L<$target>)";
+				} else {
+					$str .= "L<$target>";
+				}
 
 			} elsif ($chunk->{style} eq '=') {
 				$str .= "[image: $chunk->{target}; $chunk->{label}]";
@@ -95,13 +101,21 @@ sub dump_paragraph {
 sub dump_code {
 	my ($self, $code, %opts) = @_;
 
-	return "C<" . $self->escape($code->{text}) . ">\n";
+	$self->add_indentation_block($code->{text}, %opts);
 }
 
 sub dump_preformatted {
 	my ($self, $pre, %opts) = @_;
 
-	$self->add_indentation_block($pre->{text}, %opts);
+	$self->add_indentation_block(
+		join(
+			'',
+			map {
+				$_->{type} eq LINK ? $_->{label} : $_->{text}
+			} @{$pre->{text}}
+		),
+		%opts
+	);
 }
 
 sub dump_table {
@@ -113,39 +127,50 @@ sub dump_table {
 sub dump_rule {
 	my ($self, $rule, %opts) = @_;
 
-	return "\n";
+	return "";
 }
 
 sub dump_quotation {
 	my ($self, $quote, %opts) = @_;
 
-	$self->add_indentation_block($self->dump_list($quote->{content}, %opts), %opts);
+	return "=over 4\n\n"
+		. $self->dump_list($quote->{content}, %opts)
+		. "\n=back\n";
 }
 
 sub dump_listing {
 	my ($self, $listing, %opts) = @_;
 
-	return
-		"\n" .
-		join("", map {
-			"=item\n\n" . $self->dump_list($_, %opts) . "\n"
-		} @{$listing->{content}});
+	return 
+		"=over 4\n\n"
+		. join("\n", map {
+			"=item *\n\n" . $self->dump_list($_, %opts)
+		} @{$listing->{content}})
+		. "\n=back\n"
 }
 
 sub dump_enumeration {
 	my ($self, $enum, %opts) = @_;
 
-	$self->dump_listing($enum, %opts);
+	my $cnt = 0;
+
+	return
+		"=over 4\n\n"
+		. join("\n", map {
+			++$cnt; "=item $cnt.\n\n" . $self->dump_list($_, %opts)
+		} @{$enum->{content}})
+		. "\n=back\n"
 }
 
 sub dump_description {
 	my ($self, $descr, %opts) = @_;
 
 	return
-		"\n" .
-		join("", map {
-			"=item$_->[0]\n\n" . $self->dump_list($_->[1], %opts) . "\n"
-		} @{$descr->{content}});
+		"=over 4\n\n"
+		. join("\n", map {
+			"=item $_->[0]\n\n" . $self->dump_list($_->[1], %opts)
+		} @{$descr->{content}})
+		. "\n=back\n";
 }
 
 sub dump_section {
@@ -155,7 +180,7 @@ sub dump_section {
 	my $label = $self->escape($heading->{heading});
 
 	return
-		"\n=head$level $label\n\n"
+		"=head$level $label\n\n"
 		. $self->dump_list($heading->{content}, %opts);
 }
 
@@ -164,12 +189,10 @@ sub construct_full_page {
 
 	$page = "=head1 DESCRIPTION\n\n$page" unless $page =~ /^=/;
 
-	my $name = $self->escape($opts{name} || "Unknown");
-
 	return <<EOS;
 =head1 NAME
 
-$name - $opts{escaped_title}
+$opts{escaped_title}
 
 $page
 =head1 AUTHORS

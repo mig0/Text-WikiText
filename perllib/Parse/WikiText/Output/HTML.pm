@@ -60,19 +60,17 @@ sub dump_text {
 		} elsif ($chunk->{type} eq LINK) {
 			$self->fill_in_link($chunk);
 
+			my $target = $self->escape($chunk->{target});
+			my $label = $self->escape($chunk->{label});
+
 			if ($chunk->{style} eq '>') {
-				$str .= '<a href="' . $chunk->{target} . '">'
-					. $self->escape($chunk->{label})
-					. '</a>';
+				$str .= '<a href="' . $target . '">' . $label . '</a>';
 
 			} elsif ($chunk->{style} eq '=') {
-				$str .= '<img src="' . $chunk->{target}
-					. '" alt="' . $chunk->{label} . '" />';
+				$str .= '<img src="' . $target . '" alt="' . $label . '" />';
 
 			} elsif ($chunk->{style} eq '#') {
-				$str .= '<a href="#' . $chunk->{target} . '">'
-					. $self->escape($chunk->{label})
-					. '</a>';
+				$str .= '<a href="#' . $target . '">' . $label . '</a>';
 
 			} else {
 				warn("Unrecognized link style '" . $chunk->{style} . "'.\n");
@@ -97,8 +95,7 @@ sub dump_paragraph {
 		if defined $para->{heading};
 
 	$text .= $self->dump_text($para->{text}, %opts);
-
-	$text .= "</p>\n" unless $opts{no_p};
+	$text =~ s,\n$,</p>\n, unless $opts{no_p};
 	
 	return $text;
 }
@@ -106,13 +103,21 @@ sub dump_paragraph {
 sub dump_code {
 	my ($self, $code, %opts) = @_;
 
-	return "<pre><code>" . $self->escape($code->{text}) . "</code></pre>\n";
+	my $text = "<pre><code>"
+		. $self->escape($code->{text});
+	$text =~ s,\n$,</code></pre>\n,;
+
+	return $text;
 }
 
 sub dump_preformatted {
 	my ($self, $pre, %opts) = @_;
 
-	return "<pre>" . $self->dump_text($pre->{text}) . "</pre>\n";
+	my $text = "<pre>"
+		. $self->dump_text($pre->{text});
+	$text =~ s,\n$,</pre>\n,;
+
+	return $text;
 }
 
 sub dump_table {

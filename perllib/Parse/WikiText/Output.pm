@@ -43,6 +43,10 @@ sub escape ($$) {
 	return $text;
 }
 
+sub separator ($) {
+    return "\n";
+}
+
 my $RE_TLD = qr/
 	com|edu|gov|int|mil|net|org
 	|aero|biz|coop|info|museum|name|pro
@@ -198,7 +202,7 @@ sub dump_list {
 
 	my $first = 1;
 	foreach my $sect (@$list) {
-		$str .= "\n" unless $first;
+		$str .= $self->separator unless $first;
 		$first = 0;
 
 		if ($sect->{type} eq SECTION) {

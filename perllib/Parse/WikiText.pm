@@ -134,7 +134,9 @@ my %DEFAULT_PARA_RE = (
 		close  => undef,
 		code   => sub {
 			my ($self, $type, $text, $match) = @_;
-			$match =~ s/\s*::\s//;
+
+			$match =~ s/\s*::\s+//;
+			$text .= "\n" unless $text =~ /\n$/;
 
 			my $p = {
 				type => P,
@@ -142,7 +144,7 @@ my %DEFAULT_PARA_RE = (
 			};
 
 			$p->{heading} = $match
-				if $match;
+				if length($match);
 
 			return $p;
 		},
@@ -153,6 +155,8 @@ my %DEFAULT_PARA_RE = (
 		close  => qr/(?:^|\s)}/,
 		code   => sub {
 			my ($self, $type, $text) = @_;
+
+			$text .= "\n" unless $text =~ /\n$/;
 
 			return {
 				type => PRE,
