@@ -163,3 +163,114 @@ sub pop_filter {
 1;
 
 __END__
+
+=head1 NAME
+
+Parse::WikiText::InputFilter - A stream filter
+
+=head1 SYNOPSIS
+
+	use Parse::WikiText::InputFilter;
+
+	my $filter = Parse::WikiText::InputFilter->new(\*STDIN);
+	$filter->push_filter(qr/> ?/);
+	while (defined ($_ = $filter->readline)) {
+		print "$_";
+		$filter->commit;
+	}
+	$filter->pop_filter;
+
+=head1 DESCRIPTION
+
+Parse::WikiText::InputFilter provides a simple interface to aid
+parsing line-based, prefix-structured content.
+
+=head1 METHODS
+
+The following methods are available:
+
+B<new>,
+B<line_n>,
+B<last_prefix>,
+B<last_match>,
+B<peek>,
+B<readline>,
+B<try>,
+B<match>,
+B<commit>,
+B<flush_empty>,
+B<push_filter>,
+B<pop_filter>.
+
+=over 4
+
+=item B<new> I<handle>
+
+=item B<new> I<string>
+
+Create a new input filter over the given string or L<IO::Handle>.
+
+=item B<line_n>
+
+Return the current line number.
+
+=item B<last_prefix>
+
+Returns the whitespace before the last match.  See B<try> and
+B<match>.
+
+=item B<last_match>
+
+Returns the last match.  See B<try> and B<match>.
+
+=item B<peek>
+
+Returns the current input line with all prefixes removed, or B<undef>
+if a filter does not match.
+
+=item B<readline>
+
+Return the current input line unchanged, or B<undef> on end-of-file or
+error.
+
+=item B<try> I<regexp>
+
+Try to match I<regexp> against the beginning of the current, filtered
+input line (see B<peek>).  The matched string and any preceeding
+whitespace can be accessed with B<last_match> and B<last_prefix>.
+Returns a true value if I<regexp> matched.
+
+=item B<match> I<regexp>
+
+Same as B<try>, but removes the match and prefix from the current
+input line.
+
+=item B<commit>
+
+Mark the current input line as processed.  Future calls to B<peek> or
+B<readline> will return the next input line.
+
+=item B<flush_empty>
+
+Skip all input lines containing only whitespace.
+
+=item B<push_filter> I<regexp>
+
+Add another input filter.  Future calls to B<peek> will strip
+B<last_prefix> and I<regexp> from the beginning of all lines.
+
+=item B<pop_filter>
+
+Remove top-most input filter.
+
+=back
+
+=head1 AUTHORS
+
+Enno Cramer, Mikhael Goikhman
+
+=head1 SEE ALSO
+
+L<Parse::WikiText>
+
+=cut
