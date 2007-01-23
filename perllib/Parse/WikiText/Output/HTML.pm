@@ -64,13 +64,13 @@ sub dump_text {
 			my $label = $self->escape($chunk->{label});
 
 			if ($chunk->{style} eq '>') {
-				$str .= '<a href="' . $target . '">' . $label . '</a>';
+				$str .= qq(<a href="$target">$label</a>);
 
 			} elsif ($chunk->{style} eq '=') {
-				$str .= '<img src="' . $target . '" alt="' . $label . '" />';
+				$str .= qq(<img src="$target" alt="$label" />);
 
 			} elsif ($chunk->{style} eq '#') {
-				$str .= '<a href="#' . $target . '">' . $label . '</a>';
+				$str .= qq(<a href="#$target">$label</a>);
 
 			} else {
 				warn("Unrecognized link style '" . $chunk->{style} . "'.\n");

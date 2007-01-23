@@ -44,7 +44,7 @@ sub escape ($$) {
 }
 
 sub separator ($) {
-    return "\n";
+	return "\n";
 }
 
 my $RE_TLD = qr/

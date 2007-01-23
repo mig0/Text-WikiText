@@ -593,21 +593,30 @@ Parse::WikiText - Simple Markup Conversion
 
 	use Parse::WikiText;
 
+	print Parse::WikiText->new->convert(\*STDIN, format => 'Latex');
+
+or
+
+	use Parse::WikiText;
+	use Parse::WikiText::Output::HTML;
+
 	my $parser = Parse::WikiText->new;
 	my $document = $parser->parse(\*STDIN);
 
-	my $html = Parse::WikiText::Output::HTML->dump($document);
+	my $html = Parse::WikiText::Output::HTML->new->dump($document);
 	print $html;
-
-	# or
-
-	print Parse::WikiText->new->convert(\*STDIN, { format => 'Latex' });
 
 =head1 DESCRIPTION
 
+The WikiText markup language specification together with its source (in
+WikiText) may be at:
+
+  http://podius.wox.org/documentation/wikitext-spec.html
+  http://podius.wox.org/documentation/wikitext-spec.txt
+
 Parse::WikiText provides a parser for the WikiText markup language,
 and output modules to convert parsed documents into other markup
-languages, such as HTML and Latex.
+languages, such as HTML, Latex or Pod.
 
 =head1 METHODS
 
@@ -635,7 +644,7 @@ defined below.
 
 =item B<convert> I<string> [I<options>]
 
-Parse and convert a WikiText document.	This method uses B<parse> to
+Parse and convert a WikiText document.  This method uses B<parse> to
 parse a WikiText document and immediately converts it to the specified
 output format.
 
@@ -660,12 +669,12 @@ module should generate document headers and footers.  Defaults to B<0>
 
 =item B<author>
 
-Specifies the output document title and author.	 The values are used
-only when B<full_page> is set.	Defaults are undefined.
+Specifies the output document title and author.  The values are used
+only when B<full_page> is set.  Defaults are undefined.
 
 =item B<heading_offset>
 
-Specifies an optional offset applied to the level of all headings.	An
+Specifies an optional offset applied to the level of all headings.  An
 offset of 1 will convert level 1 headings to level 2, level 2 headings
 to level 3, etc.  This option is useful when the output is embedded
 into other documents.  Defaults to B<0>.
@@ -680,7 +689,7 @@ should only be allowed from trusted sources.  Defaults to B<0>
 =item B<flat-lists> (HTML only)
 
 Specifies whether compact lists include additional paragraph elements.
-Applies to ul, ol, and dl elements.	 Defaults to B<0> (generate
+Applies to ul, ol, and dl elements.  Defaults to B<0> (generate
 additional paragraph elements).
 
 Example:
@@ -706,7 +715,7 @@ Example:
 B<Note: The document structure might be redefined in the future.>
 
 A parsed WikiText document is an anonymous array of WikiText elements.
-Each element is an anonymous hash with various properties.	All
+Each element is an anonymous hash with various properties.  All
 elements have at least the field B<type>, used to identify the type of
 the element.
 
@@ -743,7 +752,7 @@ Fields: B<text>.
 
 Sections can contain other sections, environments and paragraphs.
 Environments can contain other environments and paragraphs.
-Paragraphs can contain formatting elemens.	Formatting elements
+Paragraphs can contain formatting elemens.  Formatting elements
 contain plain text.
 
 =head1 AUTHORS
@@ -753,6 +762,7 @@ Enno Cramer, Mikhael Goikhman
 =head1 SEE ALSO
 
 L<wikitext-convert>,
+L<Parse::WikiText::InputFilter>,
 L<Parse::WikiText::Output>.
 
 =cut
