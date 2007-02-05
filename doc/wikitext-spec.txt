@@ -116,12 +116,12 @@ Incomplete link targets are automatically completed by adding
 Example::
 
   | This is a simple [http://nowhere.org/|link].  Another link to
-  | [google.com].
+  | [podius.wox.org].
 
 Output::
 
   > This is a simple [http://nowhere.org/|link].  Another link to
-  > [google.com].
+  > [podius.wox.org].
 
 
 == Verbatim Text ==
@@ -459,3 +459,12 @@ Example::
   | = heading level 1 =
   |
   | == heading level 2 ==
+
+
+= See Also =
+
+[http://podius.wox.org/documentation/wikitext-spec.txt|
+The source of this specification] in WikiText format.
+
+[http://podius.wox.org/|Podius Content Management System] uses WikiText
+for its rich text property.
