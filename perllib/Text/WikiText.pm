@@ -14,7 +14,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-package Parse::WikiText;
+package Text::WikiText;
 
 use strict;
 use warnings;
@@ -274,7 +274,7 @@ my %DEFAULT_SECTION_RE = (
 	}
 );
 
-use Parse::WikiText::InputFilter;
+use Text::WikiText::InputFilter;
 
 sub new {
 	my $class = shift;
@@ -553,7 +553,7 @@ sub parse_structure {
 sub parse {
 	my ($self, $string_or_stream) = @_;
 
-	my $input = Parse::WikiText::InputFilter->new($string_or_stream);
+	my $input = Text::WikiText::InputFilter->new($string_or_stream);
 
 	my @list;
 	while (defined $input->peek) {
@@ -569,7 +569,7 @@ sub convert {
 	my $output_class = $opts{format} || 'HTML';
 	my $output_object = ref($output_class) && $output_class;
 
-	$output_class = "Parse::WikiText::Output::$output_class"
+	$output_class = "Text::WikiText::Output::$output_class"
 		unless $output_object || $output_class =~ /::/;
 
 	unless ($output_object) {
@@ -587,23 +587,23 @@ __END__
 
 =head1 NAME
 
-Parse::WikiText - Simple Markup Conversion
+Text::WikiText - Simple Markup Conversion
 
 =head1 SYNOPSIS
 
-	use Parse::WikiText;
+	use Text::WikiText;
 
-	print Parse::WikiText->new->convert(\*STDIN, format => 'Latex');
+	print Text::WikiText->new->convert(\*STDIN, format => 'Latex');
 
 or
 
-	use Parse::WikiText;
-	use Parse::WikiText::Output::HTML;
+	use Text::WikiText;
+	use Text::WikiText::Output::HTML;
 
-	my $parser = Parse::WikiText->new;
+	my $parser = Text::WikiText->new;
 	my $document = $parser->parse(\*STDIN);
 
-	my $html = Parse::WikiText::Output::HTML->new->dump($document);
+	my $html = Text::WikiText::Output::HTML->new->dump($document);
 	print $html;
 
 =head1 DESCRIPTION
@@ -614,7 +614,7 @@ WikiText) may be at:
   http://podius.wox.org/documentation/wikitext-spec.html
   http://podius.wox.org/documentation/wikitext-spec.txt
 
-Parse::WikiText provides a parser for the WikiText markup language,
+Text::WikiText provides a parser for the WikiText markup language,
 and output modules to convert parsed documents into other markup
 languages, such as HTML, Latex or Pod.
 
@@ -762,7 +762,7 @@ Enno Cramer, Mikhael Goikhman
 =head1 SEE ALSO
 
 L<wikitext-convert>,
-L<Parse::WikiText::InputFilter>,
-L<Parse::WikiText::Output>.
+L<Text::WikiText::InputFilter>,
+L<Text::WikiText::Output>.
 
 =cut

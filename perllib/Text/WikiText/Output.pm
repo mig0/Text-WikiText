@@ -14,12 +14,12 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-package Parse::WikiText::Output;
+package Text::WikiText::Output;
 
 use strict;
 use warnings;
 
-use Parse::WikiText ':types';
+use Text::WikiText ':types';
 
 sub new ($) {
 	my $class = shift;
