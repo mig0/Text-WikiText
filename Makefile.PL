@@ -5,7 +5,7 @@ use ExtUtils::MakeMaker;
 
 WriteMakefile(
 	NAME => 'Text::WikiText',
-	DISTNAME => 'wikitext',
+	DISTNAME => 'wikitext-perl',
 	dist => {
 		# default CP 'ln' is buggy, it changes source file permissions
 		DIST_CP => 'cp',
@@ -14,7 +14,7 @@ WriteMakefile(
 	INSTALLDIRS => 'site',
 	EXE_FILES => [ 'bin/wikitext-convert' ],
 	VERSION_FROM => 'lib/Text/WikiText.pm',
-	ABSTRACT => 'WikiText Markup Conversion',
+	ABSTRACT => 'Converting WikiText markup to other formats',
 	AUTHOR => 'Enno Cramer <uebergeek@web.de>, Mikhael Goikhman <migo@homemail.com>',
 );
 

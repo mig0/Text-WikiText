@@ -587,7 +587,7 @@ __END__
 
 =head1 NAME
 
-Text::WikiText - Simple Markup Conversion
+Text::WikiText - Converting WikiText markup to other formats
 
 =head1 SYNOPSIS
 
@@ -608,8 +608,8 @@ or
 
 =head1 DESCRIPTION
 
-The WikiText markup language specification together with its source (in
-WikiText) may be at:
+The WikiText markup specification (and its source in WikiText)
+may be found at:
 
   http://podius.wox.org/documentation/wikitext-spec.html
   http://podius.wox.org/documentation/wikitext-spec.txt
@@ -686,7 +686,7 @@ Verbatim blocks can break the output document structure and thus
 should only be allowed from trusted sources.  Defaults to B<0>
 (include verbatim blocks).
 
-=item B<flat-lists> (HTML only)
+=item B<flat_lists> (HTML only)
 
 Specifies whether compact lists include additional paragraph elements.
 Applies to ul, ol, and dl elements.  Defaults to B<0> (generate
