@@ -77,3 +77,72 @@ GetOptions(
 ) or show_usage(1);
 
 print Text::WikiText->new->convert(\*ARGV, %options);
+
+__END__
+
+=head1 NAME
+
+wikitext-convert - convert WikiText to other formats
+
+=head1 SYNOPSIS
+
+	wikitext-convert --help
+
+	wikitext-convert [OPTIONS] [FILE ...]
+
+=head1 DESCRIPTION
+
+By default, the given wikitext is converted to HTML.  To process whole
+documents, use --full-page option.
+
+If no files are specified the input is taken from the standard input.
+
+=head1 OPTIONS
+
+=over 4
+
+=item -h --help
+
+show this usage
+
+=item -f --format NAME
+
+specify format (HTML, Latex, Pod)
+
+=item -F --full-page
+
+form standard page, i.e. <html>...</html>
+
+=item -t --title NAME
+
+set title (default: "WikiText Converted Page")
+
+=item -a --author NAME
+
+set author (default: "Unknown")
+
+=item -V --no-verbatim
+
+do not include verbatim blocks in output
+
+=item -H --heading-offset N
+
+set heading offset (default: 0)
+
+=item -l --flat-lists
+
+use <li>...</li> instead of <li><p>...</p></li>
+
+=back
+
+=head1 AUTHORS
+
+Mikhael Goikhman, Enno Cramer
+
+=head1 SEE ALSO
+
+L<Text::WikiText>.
+
+L<http://podius.wox.org/documentation/wikitext-spec.html>
+
+=cut
