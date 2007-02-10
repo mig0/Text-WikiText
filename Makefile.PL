@@ -3,12 +3,6 @@ use strict;
 
 use ExtUtils::MakeMaker;
 
-my @all_module_filenames = (
-	"perllib/Text/WikiText.pm",
-	glob("perllib/Text/WikiText/*.pm"),
-	glob("perllib/Text/WikiText/*/*.pm"),
-);
-
 WriteMakefile(
 	NAME => 'Text::WikiText',
 	DISTNAME => 'wikitext',
@@ -17,25 +11,9 @@ WriteMakefile(
 		DIST_CP => 'cp',
 		COMPRESS => 'gzip --best --force',
 	},
-	test => {
-		TESTS => 'tests/*-[1-9]',
-	},
-	PM => {
-		map {
-			my $t = $_; $t =~ s!^perllib/!!;
-			($_, '$(INST_LIB)/' . $t)
-		} @all_module_filenames
-	},
-	# this translation should not be needed, but MakeMaker is buggy again
-	MAN3PODS => {
-		map {
-			my $t = $_; $t =~ s!^perllib/!!; 
-			$t =~ s!/!::!g; $t =~ s/\.pm$//;
-			($_, '$(INST_MAN3DIR)/' . "$t.3pm")
-		} @all_module_filenames
-	},
+	INSTALLDIRS => 'site',
 	EXE_FILES => [ 'bin/wikitext-convert' ],
-	VERSION_FROM => 'perllib/Text/WikiText.pm',
+	VERSION_FROM => 'lib/Text/WikiText.pm',
 	ABSTRACT => 'WikiText Markup Conversion',
 	AUTHOR => 'Enno Cramer <uebergeek@web.de>, Mikhael Goikhman <migo@homemail.com>',
 );
@@ -55,8 +33,10 @@ my @new_lines = map { "$_\n" } (
 	),
 	glob("bin/*"),
 	glob("doc/*"),
-	@all_module_filenames,
-	glob("tests/*-[1-9]"),
+	glob("t/*"),
+	"lib/Text/WikiText.pm",
+	glob("lib/Text/WikiText/*.pm"),
+	glob("lib/Text/WikiText/*/*.pm"),
 );
 if (join(',', @old_lines) ne join(',', @new_lines)) {
 	print "Creating MANIFEST file\n";

@@ -1,17 +1,14 @@
 #!/usr/bin/perl
 
-# This script tests Text::WikiText, environment syntax.
+# This script tests Text::WikiText, inline syntax.
 
 use strict;
 use warnings;
 
-use FindBin;
-use lib "$FindBin::Bin/../perllib";
-
 use Test::More;
-plan tests => 14;
+plan tests => 32;
 
-use_ok('Text::WikiText', ':environment');
+use_ok('Text::WikiText', ':inline');
 
 can_ok('Text::WikiText', 'new');
 
@@ -22,23 +19,14 @@ can_ok($PARSER, qw(parse parse_paragraph convert));
 
 my $struct;
 
-$struct = $PARSER->parse(<<EOF);
-> Lots of folks confuse bad management with destiny.
+$struct = $PARSER->parse_paragraph('/emph/ *strong* _underline_ -strike- {typewriter} [link] {{verbatim}}');
 
-* me,
-* myself,
-* and i
-
-1. one
-2. two
-3. three
-
-:a: bc
-:z: yx
-:1: 23
-EOF
-
-my @types = (QUOTE(), LISTING(), ENUMERATION(), DESCRIPTION());
+my @types = (
+	EMPHASIS(), TEXT(), STRONG(), TEXT(),
+	UNDERLINE(), TEXT(), STRIKE(), TEXT(),
+	TYPEWRITER(), TEXT(), LINK(), TEXT(),
+	VERBATIM(),
+);
 
 isa_ok($struct, 'ARRAY', 'parse_paragraph returns array');
 is(@$struct, @types, 'number of elements');
