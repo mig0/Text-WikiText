@@ -86,16 +86,19 @@ wikitext-convert - convert WikiText to other formats
 
 =head1 SYNOPSIS
 
-	wikitext-convert --help
+  wikitext-convert [OPTIONS] [FILE ...]
 
-	wikitext-convert [OPTIONS] [FILE ...]
+=head1 EXAMPLE
+
+  printf '= The question\n\nOur _options_:\n\n * to be\n * not to be' |
+    wikitext-convert -F
 
 =head1 DESCRIPTION
 
-By default, the given wikitext is converted to HTML.  To process whole
-documents, use --full-page option.
+By default, wikitext is converted to HTML, but format is configurable.
+To process whole documents, use --full-page option.
 
-If no files are specified the input is taken from the standard input.
+If no files are specified, the standard input is taken.
 
 =head1 OPTIONS
 
@@ -141,7 +144,7 @@ Mikhael Goikhman, Enno Cramer
 
 =head1 SEE ALSO
 
-L<Text::WikiText>.
+L<Text::WikiText>,
 
 L<http://podius.wox.org/documentation/wikitext-spec.html>
 
