@@ -52,7 +52,15 @@ sub dump_text {
 			$str .= '<u>' . $self->escape($chunk->{text}) . '</u>';
 
 		} elsif ($chunk->{type} eq STRIKE) {
-			$str .= '<strike>' . $self->escape($chunk->{text}) . '</strike>';
+			if ($opts{use_css}) {
+				$str .= '<span class="strike">'
+					. $self->escape($chunk->{text})
+					. '</span>';
+			} else {
+				$str .= '<strike>'
+					. $self->escape($chunk->{text})
+					. '</strike>';
+			}
 
 		} elsif ($chunk->{type} eq TYPEWRITER) {
 			$str .= '<tt>' . $self->escape($chunk->{text}) . '</tt>';
@@ -91,8 +99,17 @@ sub dump_paragraph {
 
 	$text .= "<p>" unless $opts{no_p};
 
-	$text .= "<b>" . $self->escape($para->{heading}) . "</b> "
-		if defined $para->{heading};
+	if (defined $para->{heading}) {
+		if ($opts{use_css}) {
+			$text .= '<span class="paragraph">'
+				. $self->escape($para->{heading})
+				. '</span> ';
+		} else {
+			$text .= '<b>'
+				. $self->escape($para->{heading})
+				. '</b>&nbsp;&nbsp;&nbsp;';
+		}
+	}
 
 	$text .= $self->dump_text($para->{text}, %opts);
 	$text =~ s,\n$,</p>\n, unless $opts{no_p};
@@ -232,12 +249,23 @@ sub dump_section {
 sub construct_full_page {
 	my ($self, $page, %opts) = @_;
 
+	my $css = '';
+	if ($opts{use_css}) {
+		$css = <<EOS;
+  <style type="text/css"><!--
+      span.strike { text-decoration: line-through; }
+      span.paragraph { margin-right: 1em; font-weight: bold; }
+  --></style>
+EOS
+	}
+
 	return <<EOS;
 <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN' "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html>
 <head>
   <title>$opts{escaped_title}</title>
   <meta name="author" content="$opts{escaped_author}" />
+$css
 </head>
 <body>
 

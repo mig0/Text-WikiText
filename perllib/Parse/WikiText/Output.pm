@@ -93,6 +93,10 @@ sub fill_in_link {
 		} elsif ($chunk->{target} =~ /^(\w+\.){1,}$RE_TLD(\/|$)/) {
 			$chunk->{style} = '>';
 
+		# section headings
+		} elsif ($chunk->{target} =~ /^[A-Za-z0-9_ -]+$/) {
+			$chunk->{style} = '#';
+
 		# whitespace in urls is bad
 		} elsif ($chunk->{target} =~ /\s/) {
 			$chunk->{style} = '#';
