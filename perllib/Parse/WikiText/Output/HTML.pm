@@ -30,6 +30,15 @@ sub entities {
 	'"' => '&quot;',
 }
 
+sub _label_to_anchor ($) {
+	my $anchor = shift;
+
+	$anchor =~ s/\s+$//;
+	$anchor =~ s/\W/_/g;
+
+	return $anchor;
+}
+
 sub dump_text {
 	my ($self, $text, %opts) = @_;
 
@@ -78,7 +87,9 @@ sub dump_text {
 				$str .= '<img src="' . $target . '" alt="' . $label . '" />';
 
 			} elsif ($chunk->{style} eq '#') {
-				$str .= '<a href="#' . $target . '">' . $label . '</a>';
+				my $anchor = _label_to_anchor($chunk->{target});
+
+				$str .= '<a href="#' . $anchor . '">' . $label . '</a>';
 
 			} else {
 				warn("Unrecognized link style '" . $chunk->{style} . "'.\n");
@@ -237,8 +248,7 @@ sub dump_section {
 	my $level = $heading->{level} + ($opts{heading_offset} || 0);
 	my $label = $heading->{heading};
 
-	my $anchor = $label;
-	$anchor =~ s/\W/_/g;
+	my $anchor = _label_to_anchor($label);
 
 	return 
 		"<a name=\"$anchor\"></a>\n"

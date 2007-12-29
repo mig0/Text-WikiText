@@ -417,7 +417,7 @@ my $RE_ALL_ENV =
 	eval "qr/" . (join "|", map { $_->{open} } values %DEFAULT_ENVIRONMENT_RE) . "|" . $DEFAULT_SECTION_RE{open} . "/";
 
 sub parse_block_list {
-	my ($self, $input, $filter, $close, $parbreak) = @_;
+	my ($self, $input, $env_has_filter, $close, $parbreak) = @_;
 
 	my @list = ();
 	my $last;
@@ -425,7 +425,7 @@ sub parse_block_list {
 	local $_;
 
 	while (defined ($_ = $input->peek)) {
-		last if !defined $filter && /^$RE_ALL_ENV/;
+		last if !$env_has_filter && $input->is_at_bol && /^$RE_ALL_ENV/;
 		$last = defined $close && s/$close\n?$//;
 
 		push @list, $self->parse_block($input, $parbreak);
@@ -459,7 +459,7 @@ sub parse_block {
 					}
 
 					my $content = $self->parse_block_list(
-						$input, $def->{filter}, $def->{close}, $def->{open}
+						$input, defined $def->{filter}, $def->{close}, $def->{open}
 					);
 
 					my $elem = exists $def->{code}

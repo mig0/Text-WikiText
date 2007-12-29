@@ -36,6 +36,9 @@ sub new {
 		filter    => [],
 
 		buffer    => undef,
+		is_at_bol => 0,
+
+		last_filter => [],
 
 		last_prefix => undef,
 		last_match  => undef,
@@ -50,6 +53,12 @@ sub line_n {
 	return $self->{line_n};
 }
 
+sub last_filter {
+	my $self = shift;
+
+	return $self->{last_filter}->[-1];
+}
+
 sub last_prefix {
 	my $self = shift;
 
@@ -62,6 +71,12 @@ sub last_match {
 	return $self->{last_match};
 }
 
+sub is_at_bol {
+	my $self = shift;
+
+	return $self->{is_at_bol} || !defined $self->{buffer};
+}
+
 sub peek {
 	my $self = shift;
 
@@ -69,11 +84,15 @@ sub peek {
 		my $line = $self->readline;
 
 		if (defined $line) {
+			$self->{last_filter} = [];
+
 			foreach my $filter (@{$self->{filter}}) {
 				if ($line !~ s/^$filter//) {
 					$line = undef;
 					last;
 				}
+
+				push @{$self->{last_filter}}, $&;
 			}
 		}
 
@@ -97,6 +116,7 @@ sub readline {
 	$line =~ s/(?:\r*\n|\r)/\n/ if defined $line;
 
 	++$self->{line_n};
+	$self->{is_at_bol} = 1;
 
 	return $self->{lookahead} = $line;
 }
@@ -121,6 +141,8 @@ sub match {
 
 	$self->{last_prefix} = $1;
 	$self->{last_match} = $2;
+
+	$self->{is_at_bol} = 0 if $ret;
 
 	return $ret;
 }
@@ -148,16 +170,28 @@ sub flush_empty {
 sub push_filter {
 	my ($self, $filter) = @_;
 
+	push @{$self->{last_filter}}, $self->last_prefix, $self->last_match
+		if @{$self->{last_filter}} == @{$self->{filter}};
+
 	push @{$self->{filter}}, defined $self->{last_prefix}
-		? qr/\Q$self->{last_prefix}\E$filter/
-		: $filter;
+		? qr/\Q$self->{last_prefix}\E/
+		: qr//;
+
+	push @{$self->{filter}}, $filter;
 }
 
 sub pop_filter {
 	my $self = shift;
 
+	if (defined $self->{buffer} && $self->{is_at_bol}) {
+		$self->{buffer} = $self->{last_filter}->[-2] . $self->{last_filter}->[-1] . $self->{buffer};
+	}
+
+	pop @{$self->{last_filter}};
+	pop @{$self->{last_filter}};
+
 	pop @{$self->{filter}};
-	$self->{buffer} = undef;
+	pop @{$self->{filter}};
 }
 
 1;
