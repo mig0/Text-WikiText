@@ -127,7 +127,7 @@ sub fill_in_link {
 			$chunk->{target} = "http://" . $chunk->{target};
 		}
 
-		if ($chunk->{target} =~ /\.$RE_TLD$/) {
+		if ($chunk->{style} eq '>' && $chunk->{target} =~ /^\w+:\/\/(\w+\.)$RE_TLD$/) {
 			$chunk->{target} .= '/';
 		}
 	}
