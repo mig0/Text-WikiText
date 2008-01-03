@@ -187,22 +187,57 @@ sub dump_quotation {
 		. "</blockquote>\n"
 }
 
-sub _is_simple_p_list (@) {
-	foreach (@_) {
-		return 0 if @$_ > 1;
-		return 0 if $_->[0]->{type} ne P;
-		return 0 if defined $_->[0]->{heading};
-		return 0 if $_->[0]->{text} =~ /\n/;
-	}
+sub _is_simple_p {
+ 	my $elem = shift;
 
-	return 1;
+	if ($elem->{type} eq P) {
+		return 0 if defined $elem->{heading};
+		return 0 if $elem->{text} =~ /\n/;
+
+		return 1;
+
+	} else {
+		return 0;
+	}
+}
+
+sub _is_simple_p_list {
+	my $list = shift;
+
+	if ($list->{type} eq LISTING || $list->{type} eq ENUMERATION) {
+		foreach (@{$list->{content}}) {
+			return 0 if @$_ > 0 && !_is_simple_p($_->[0]);
+			return 0 if @$_ > 1 && !_is_simple_p_list($_->[1]);
+			return 0 if @$_ > 2;
+		}
+
+		return 1;
+
+	} else {
+		return 0;
+	}
+}
+
+sub _is_simple_p_description {
+	my $list = shift;
+
+	if ($list->{type} eq DESCRIPTION) {
+		foreach (map { $_->[1] } @{$list->{content}}) {
+			return 0 if @$_ > 0 && !_is_simple_p($_->[0]);
+			return 0 if @$_ > 1;
+		}
+
+		return 1;
+
+	} else {
+		return 0;
+	}
 }
 
 sub dump_listing {
 	my ($self, $listing, %opts) = @_;
 
-	$opts{no_p} = 1 
-		if $opts{flat_lists} && _is_simple_p_list(@{$listing->{content}});
+	$opts{no_p} ||= $opts{flat_lists} && _is_simple_p_list($listing);
 
 	return
 		"<ul>\n" .
@@ -215,8 +250,7 @@ sub dump_listing {
 sub dump_enumeration {
 	my ($self, $enum, %opts) = @_;
 
-	$opts{no_p} = 1 
-		if $opts{flat_lists} && _is_simple_p_list(@{$enum->{content}});
+	$opts{no_p} ||= $opts{flat_lists} && _is_simple_p_list($enum);
 
 	return
 		"<ol>\n" .
@@ -229,8 +263,7 @@ sub dump_enumeration {
 sub dump_description {
 	my ($self, $descr, %opts) = @_;
 
-	$opts{no_p} = 1 
-		if $opts{flat_lists} && _is_simple_p_list(map { $_->[1] } @{$descr->{content}});
+	$opts{no_p} ||= $opts{flat_lists} && _is_simple_p_description($descr);
 
 	return
 		"<dl>\n" .
