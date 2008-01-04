@@ -14,12 +14,12 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-package Parse::WikiText;
+package Text::WikiText;
 
 use strict;
 use warnings;
 
-our $VERSION = 0.1;
+our $VERSION = 1.01;
 
 use constant {
 	COMMENT     => 'comment',
@@ -274,7 +274,7 @@ my %DEFAULT_SECTION_RE = (
 	}
 );
 
-use Parse::WikiText::InputFilter;
+use Text::WikiText::InputFilter;
 
 sub new {
 	my $class = shift;
@@ -553,7 +553,7 @@ sub parse_structure {
 sub parse {
 	my ($self, $string_or_stream) = @_;
 
-	my $input = Parse::WikiText::InputFilter->new($string_or_stream);
+	my $input = Text::WikiText::InputFilter->new($string_or_stream);
 
 	my @list;
 	while (defined $input->peek) {
@@ -569,7 +569,7 @@ sub convert {
 	my $output_class = $opts{format} || 'HTML';
 	my $output_object = ref($output_class) && $output_class;
 
-	$output_class = "Parse::WikiText::Output::$output_class"
+	$output_class = "Text::WikiText::Output::$output_class"
 		unless $output_object || $output_class =~ /::/;
 
 	unless ($output_object) {
@@ -587,27 +587,36 @@ __END__
 
 =head1 NAME
 
-Parse::WikiText - Simple Markup Conversion
+Text::WikiText - Converting WikiText markup to other formats
 
 =head1 SYNOPSIS
 
-	use Parse::WikiText;
+	use Text::WikiText;
 
-	my $parser = Parse::WikiText->new;
+	print Text::WikiText->new->convert(\*STDIN, format => 'Latex');
+
+or
+
+	use Text::WikiText;
+	use Text::WikiText::Output::HTML;
+
+	my $parser = Text::WikiText->new;
 	my $document = $parser->parse(\*STDIN);
 
-	my $html = Parse::WikiText::Output::HTML->dump($document);
+	my $html = Text::WikiText::Output::HTML->new->dump($document);
 	print $html;
-
-	# or
-
-	print Parse::WikiText->new->convert(\*STDIN, { format => 'Latex' });
 
 =head1 DESCRIPTION
 
-Parse::WikiText provides a parser for the WikiText markup language,
+The WikiText markup specification (and its source in WikiText)
+may be found at:
+
+  http://podius.wox.org/documentation/wikitext-spec.html
+  http://podius.wox.org/documentation/wikitext-spec.txt
+
+Text::WikiText provides a parser for the WikiText markup language,
 and output modules to convert parsed documents into other markup
-languages, such as HTML and Latex.
+languages, such as HTML, Latex or Pod.
 
 =head1 METHODS
 
@@ -635,7 +644,7 @@ defined below.
 
 =item B<convert> I<string> [I<options>]
 
-Parse and convert a WikiText document.	This method uses B<parse> to
+Parse and convert a WikiText document.  This method uses B<parse> to
 parse a WikiText document and immediately converts it to the specified
 output format.
 
@@ -660,12 +669,12 @@ module should generate document headers and footers.  Defaults to B<0>
 
 =item B<author>
 
-Specifies the output document title and author.	 The values are used
-only when B<full_page> is set.	Defaults are undefined.
+Specifies the output document title and author.  The values are used
+only when B<full_page> is set.  Defaults are undefined.
 
 =item B<heading_offset>
 
-Specifies an optional offset applied to the level of all headings.	An
+Specifies an optional offset applied to the level of all headings.  An
 offset of 1 will convert level 1 headings to level 2, level 2 headings
 to level 3, etc.  This option is useful when the output is embedded
 into other documents.  Defaults to B<0>.
@@ -677,10 +686,10 @@ Verbatim blocks can break the output document structure and thus
 should only be allowed from trusted sources.  Defaults to B<0>
 (include verbatim blocks).
 
-=item B<flat-lists> (HTML only)
+=item B<flat_lists> (HTML only)
 
 Specifies whether compact lists include additional paragraph elements.
-Applies to ul, ol, and dl elements.	 Defaults to B<0> (generate
+Applies to ul, ol, and dl elements.  Defaults to B<0> (generate
 additional paragraph elements).
 
 Example:
@@ -706,7 +715,7 @@ Example:
 B<Note: The document structure might be redefined in the future.>
 
 A parsed WikiText document is an anonymous array of WikiText elements.
-Each element is an anonymous hash with various properties.	All
+Each element is an anonymous hash with various properties.  All
 elements have at least the field B<type>, used to identify the type of
 the element.
 
@@ -743,7 +752,7 @@ Fields: B<text>.
 
 Sections can contain other sections, environments and paragraphs.
 Environments can contain other environments and paragraphs.
-Paragraphs can contain formatting elemens.	Formatting elements
+Paragraphs can contain formatting elemens.  Formatting elements
 contain plain text.
 
 =head1 AUTHORS
@@ -753,6 +762,7 @@ Enno Cramer, Mikhael Goikhman
 =head1 SEE ALSO
 
 L<wikitext-convert>,
-L<Parse::WikiText::Output>.
+L<Text::WikiText::InputFilter>,
+L<Text::WikiText::Output>.
 
 =cut

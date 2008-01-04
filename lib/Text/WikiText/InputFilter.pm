@@ -1,4 +1,4 @@
-# WikiText parser modules, Copyright (C) 2006 Enno Cramer, Mikhael Goikhman
+# WikiText parser modules, Copyright (C) 2006-7 Enno Cramer, Mikhael Goikhman
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the Perl Artistic License or the GNU General
@@ -14,7 +14,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-package Parse::WikiText::InputFilter;
+package Text::WikiText::InputFilter;
 
 use strict;
 use warnings;
@@ -200,13 +200,13 @@ __END__
 
 =head1 NAME
 
-Parse::WikiText::InputFilter - A stream filter
+Text::WikiText::InputFilter - A stream filter
 
 =head1 SYNOPSIS
 
-	use Parse::WikiText::InputFilter;
+	use Text::WikiText::InputFilter;
 
-	my $filter = Parse::WikiText::InputFilter->new(\*STDIN);
+	my $filter = Text::WikiText::InputFilter->new(\*STDIN);
 	$filter->push_filter(qr/> ?/);
 	while (defined ($_ = $filter->readline)) {
 		print "$_";
@@ -216,7 +216,7 @@ Parse::WikiText::InputFilter - A stream filter
 
 =head1 DESCRIPTION
 
-Parse::WikiText::InputFilter provides a simple interface to aid
+Text::WikiText::InputFilter provides a simple interface to aid
 parsing line-based, prefix-structured content.
 
 =head1 METHODS
@@ -305,6 +305,6 @@ Enno Cramer, Mikhael Goikhman
 
 =head1 SEE ALSO
 
-L<Parse::WikiText>
+L<Text::WikiText>
 
 =cut

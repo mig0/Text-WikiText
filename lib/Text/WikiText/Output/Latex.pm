@@ -14,14 +14,14 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-package Parse::WikiText::Output::Latex;
+package Text::WikiText::Output::Latex;
 
 use strict;
 use warnings;
 
-use base 'Parse::WikiText::Output';
+use base 'Text::WikiText::Output';
 
-use Parse::WikiText ':types';
+use Text::WikiText ':types';
 
 sub entities {
 	'#' => '\#',

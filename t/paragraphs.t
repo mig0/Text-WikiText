@@ -1,23 +1,20 @@
 #!/usr/bin/perl
 
-# This script tests Parse::WikiText, paragraphs syntax.
+# This script tests Text::WikiText, paragraphs syntax.
 
 use strict;
 use warnings;
 
-use FindBin;
-use lib "$FindBin::Bin/../perllib";
-
 use Test::More;
 plan tests => 16;
 
-use_ok('Parse::WikiText', ':paragraphs');
+use_ok('Text::WikiText', ':paragraphs');
 
-can_ok('Parse::WikiText', 'new');
+can_ok('Text::WikiText', 'new');
 
-my $PARSER = Parse::WikiText->new;
+my $PARSER = Text::WikiText->new;
 
-isa_ok($PARSER, 'Parse::WikiText', 'new works');
+isa_ok($PARSER, 'Text::WikiText', 'new works');
 can_ok($PARSER, qw(parse parse_paragraph convert));
 
 my $struct;

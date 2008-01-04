@@ -14,14 +14,14 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-package Parse::WikiText::Output::Pod;
+package Text::WikiText::Output::Pod;
 
 use strict;
 use warnings;
 
-use base 'Parse::WikiText::Output';
+use base 'Text::WikiText::Output';
 
-use Parse::WikiText ':types';
+use Text::WikiText ':types';
 
 sub entities {
 	'<' => 'E<lt>',
@@ -189,17 +189,19 @@ sub construct_full_page {
 
 	$page = "=head1 DESCRIPTION\n\n$page" unless $page =~ /^=/;
 
+	# backslash is for pod-related tools confusing the string with a pod
+
 	return <<EOS;
-=head1 NAME
+\=head1 NAME
 
 $opts{escaped_title}
 
 $page
-=head1 AUTHORS
+\=head1 AUTHORS
 
 $opts{escaped_author}
 
-=cut
+\=cut
 EOS
 }
 
