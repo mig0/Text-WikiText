@@ -30,6 +30,15 @@ sub entities {
 	'"' => '&quot;',
 }
 
+sub _label_to_anchor ($) {
+	my $anchor = shift;
+
+	$anchor =~ s/\s+$//;
+	$anchor =~ s/\W/_/g;
+
+	return $anchor;
+}
+
 sub dump_text {
 	my ($self, $text, %opts) = @_;
 
@@ -52,7 +61,15 @@ sub dump_text {
 			$str .= '<u>' . $self->escape($chunk->{text}) . '</u>';
 
 		} elsif ($chunk->{type} eq STRIKE) {
-			$str .= '<strike>' . $self->escape($chunk->{text}) . '</strike>';
+			if ($opts{use_css}) {
+				$str .= '<span class="strike">'
+					. $self->escape($chunk->{text})
+					. '</span>';
+			} else {
+				$str .= '<strike>'
+					. $self->escape($chunk->{text})
+					. '</strike>';
+			}
 
 		} elsif ($chunk->{type} eq TYPEWRITER) {
 			$str .= '<tt>' . $self->escape($chunk->{text}) . '</tt>';
@@ -70,7 +87,9 @@ sub dump_text {
 				$str .= qq(<img src="$target" alt="$label" />);
 
 			} elsif ($chunk->{style} eq '#') {
-				$str .= qq(<a href="#$target">$label</a>);
+				my $anchor = _label_to_anchor($chunk->{target});
+
+				$str .= qq(<a href="#$anchor">$label</a>);
 
 			} else {
 				warn("Unrecognized link style '" . $chunk->{style} . "'.\n");
@@ -91,8 +110,17 @@ sub dump_paragraph {
 
 	$text .= "<p>" unless $opts{no_p};
 
-	$text .= "<b>" . $self->escape($para->{heading}) . "</b> "
-		if defined $para->{heading};
+	if (defined $para->{heading}) {
+		if ($opts{use_css}) {
+			$text .= '<span class="paragraph">'
+				. $self->escape($para->{heading})
+				. '</span> ';
+		} else {
+			$text .= '<b>'
+				. $self->escape($para->{heading})
+				. '</b>&nbsp;&nbsp;&nbsp;';
+		}
+	}
 
 	$text .= $self->dump_text($para->{text}, %opts);
 	$text =~ s,\n$,</p>\n, unless $opts{no_p};
@@ -159,22 +187,57 @@ sub dump_quotation {
 		. "</blockquote>\n"
 }
 
-sub _is_simple_p_list (@) {
-	foreach (@_) {
-		return 0 if @$_ > 1;
-		return 0 if $_->[0]->{type} ne P;
-		return 0 if defined $_->[0]->{heading};
-		return 0 if $_->[0]->{text} =~ /\n/;
-	}
+sub _is_simple_p {
+ 	my $elem = shift;
 
-	return 1;
+	if ($elem->{type} eq P) {
+		return 0 if defined $elem->{heading};
+		return 0 if $elem->{text} =~ /\n/;
+
+		return 1;
+
+	} else {
+		return 0;
+	}
+}
+
+sub _is_simple_p_list {
+	my $list = shift;
+
+	if ($list->{type} eq LISTING || $list->{type} eq ENUMERATION) {
+		foreach (@{$list->{content}}) {
+			return 0 if @$_ > 0 && !_is_simple_p($_->[0]);
+			return 0 if @$_ > 1 && !_is_simple_p_list($_->[1]);
+			return 0 if @$_ > 2;
+		}
+
+		return 1;
+
+	} else {
+		return 0;
+	}
+}
+
+sub _is_simple_p_description {
+	my $list = shift;
+
+	if ($list->{type} eq DESCRIPTION) {
+		foreach (map { $_->[1] } @{$list->{content}}) {
+			return 0 if @$_ > 0 && !_is_simple_p($_->[0]);
+			return 0 if @$_ > 1;
+		}
+
+		return 1;
+
+	} else {
+		return 0;
+	}
 }
 
 sub dump_listing {
 	my ($self, $listing, %opts) = @_;
 
-	$opts{no_p} = 1 
-		if $opts{flat_lists} && _is_simple_p_list(@{$listing->{content}});
+	$opts{no_p} ||= $opts{flat_lists} && _is_simple_p_list($listing);
 
 	return
 		"<ul>\n" .
@@ -187,8 +250,7 @@ sub dump_listing {
 sub dump_enumeration {
 	my ($self, $enum, %opts) = @_;
 
-	$opts{no_p} = 1 
-		if $opts{flat_lists} && _is_simple_p_list(@{$enum->{content}});
+	$opts{no_p} ||= $opts{flat_lists} && _is_simple_p_list($enum);
 
 	return
 		"<ol>\n" .
@@ -201,8 +263,7 @@ sub dump_enumeration {
 sub dump_description {
 	my ($self, $descr, %opts) = @_;
 
-	$opts{no_p} = 1 
-		if $opts{flat_lists} && _is_simple_p_list(map { $_->[1] } @{$descr->{content}});
+	$opts{no_p} ||= $opts{flat_lists} && _is_simple_p_description($descr);
 
 	return
 		"<dl>\n" .
@@ -220,8 +281,7 @@ sub dump_section {
 	my $level = $heading->{level} + ($opts{heading_offset} || 0);
 	my $label = $heading->{heading};
 
-	my $anchor = $label;
-	$anchor =~ s/\W/_/g;
+	my $anchor = _label_to_anchor($label);
 
 	return 
 		"<a name=\"$anchor\"></a>\n"
@@ -232,12 +292,23 @@ sub dump_section {
 sub construct_full_page {
 	my ($self, $page, %opts) = @_;
 
+	my $css = '';
+	if ($opts{use_css}) {
+		$css = <<EOS;
+  <style type="text/css"><!--
+      span.strike { text-decoration: line-through; }
+      span.paragraph { margin-right: 1em; font-weight: bold; }
+  --></style>
+EOS
+	}
+
 	return <<EOS;
 <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN' "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html>
 <head>
   <title>$opts{escaped_title}</title>
   <meta name="author" content="$opts{escaped_author}" />
+$css
 </head>
 <body>
 

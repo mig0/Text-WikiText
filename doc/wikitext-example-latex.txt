@@ -1,15 +1,21 @@
 = Hello, World =
 
 This is a -new- wiki text. You may put *bold words*, /italic words/,
-_underlined words_ and more.
-Paragraphs are delimited by an empty line.
+_underlined words_ and more.  Paragraphs are delimited by an empty
+line (just like in LaTeX).
 
 See [http://memfrob.de/~memfrob/wikitext/wikitext-spec.html] for exact
-syntax rules. [>radomurl$~^]
+syntax rules.
 
-Some random characters: !"§$%&/()= ,;.:-_#'+*~'`?\<>|
+Latex Special Characters:: #$%^&_{}~\<>|
 
-== More examples ==
+Special Characters in Urls:: [>#$%^&_{}~\<>]
+
+This is a simple [http://google.com|link] with a label, and see
+Section [Tables].
+
+
+== Some examples ==
 
 This is {item} list:
 
@@ -17,33 +23,32 @@ This is {item} list:
  * two
  * three
 
-or {numbered} list:
+and {numbered} list:
 
  # one
  # two
  # three
 
-> quotations go like this
->
-> # one
-> # two
+{Quotations} look like this:
 
-whoever said this?
+> The two rules of optimization:
+>
+>  1) Don't do it
+>  2) (for experts only) Don't do it yet
+
+-- M. A. Jackson (Principles of Program Design)
+
+{Preformatted text}:
 
 {
     preformatted text
   as is
 }
 
-This is a simple [http://google.com|link].
 
-+--------+-----+--------+
-| Tables | are | simple |
-+--------+-----+--------+
-| 1      | 2   | 3      |
-| 4      || two columns |
-| 5      | 6   | 7      |
-+--------+-----+--------+
+== Tables ==
+
+With or without borders in markup:
 
 +------+-------+
 | HTTP | codes |
@@ -54,5 +59,14 @@ This is a simple [http://google.com|link].
 404|Not found
 500|Internal Error
 
-That's all, folks::
-Have a fun.
+And column span (but no row span):
+
++--------+-----+--------+
+| Tables | are | simple |
++--------+-----+--------+
+| 1      | 2   | 3      |
+| 4      || two columns |
+| 5      | 6   | 7      |
++--------+-----+--------+
+
+That's all, folks.  Have fun.

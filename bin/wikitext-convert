@@ -35,6 +35,7 @@ my %options = (
 	heading_offset => 0,
 
 	flat_lists => 0,
+	use_css => 0,
 );
 
 sub show_usage (;$) {
@@ -56,6 +57,7 @@ sub show_usage (;$) {
 			-H --heading-offset N  set heading offset (default: 0)
 
 			-l --flat-lists        use <li>...</li> instead of <li><p>...</p></li>
+			-c --use-css           use css for certain elements
 	};
 	$usage =~ s/^\n//; $usage =~ s/^\t\t?//mg;
 	print $out $usage;
@@ -74,6 +76,7 @@ GetOptions(
 	'H|heading-offset=i' => \$options{heading_offset},
 
 	'l|flat-lists'       => \$options{flat_lists},
+	'c|use-css'          => \$options{use_css},
 ) or show_usage(1);
 
 print Text::WikiText->new->convert(\*ARGV, %options);

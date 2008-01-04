@@ -23,36 +23,38 @@ use base 'Text::WikiText::Output';
 
 use Text::WikiText ':types';
 
-# TODO: fix ~ and ^
 sub entities {
-	'{' => '\{',
-	'}' => '\}',
 	'#' => '\#',
-	'_' => '\_',
 	'$' => '\$',
 	'%' => '\%',
 	'&' => '\&',
+	'_' => '\_',
+	'{' => '\{',
+	'}' => '\}',
 
-	'>' => '$>$',
-	'<' => '$<$',
-	'|' => '$|$',
-
-	'^' => '\verb+^+',
-	'~' => '\verb+~+',
-
-	'\\' => '$\backslash$',
+	'<' => '\textless{}',
+	'>' => '\textgreater{}',
+	'|' => '\textbar{}',
+	'^' => '\textasciicircum{}',
+	'~' => '\textasciitilde{}',
+	'\\' => '\textbackslash{}',
 }
 
-# TODO: is it possible to escape these?
+# TODO: Provide correct escaping of backslash and curly braces
 my %URL_ENTITIES = (
+	'#'  => '\#',
+	'%'  => '\%',
+	'_'  => '\_',
+
+	'\\' => '',
 	'{'  => '',
 	'}'  => '',
-	'\\' => '',
 );
 
 my $URL_ENTITY_RE = join '|', map { quotemeta } keys %URL_ENTITIES;
 
 sub url_escape {
+	my $self = shift;
 	my $text = shift;
 
 	$text =~ s/$URL_ENTITY_RE/$URL_ENTITIES{$&}/ego;
@@ -60,7 +62,6 @@ sub url_escape {
 	return $text;
 }
 
-# TODO: does hyperref support labeled links?
 sub dump_text {
 	my ($self, $text, %opts) = @_;
 
@@ -80,10 +81,10 @@ sub dump_text {
 			$str .= '\textbf{' . $self->escape($chunk->{text}) . '}';
 
 		} elsif ($chunk->{type} eq UNDERLINE) {
-			$str .= '\underbar{' . $self->escape($chunk->{text}) . '}';
+			$str .= '\uline{' . $self->escape($chunk->{text}) . '}';
 
 		} elsif ($chunk->{type} eq STRIKE) {
-			$str .= '\textst{' . $self->escape($chunk->{text}) . '}';
+			$str .= '\sout{' . $self->escape($chunk->{text}) . '}';
 
 		} elsif ($chunk->{type} eq TYPEWRITER) {
 			$str .= '\texttt{' . $self->escape($chunk->{text}) . '}';
@@ -91,15 +92,11 @@ sub dump_text {
 		} elsif ($chunk->{type} eq LINK) {
 			$self->fill_in_link($chunk);
 
-			my $target = $self->escape($chunk->{target});
+			my $target = $self->url_escape($chunk->{target});
 			my $label = $self->escape($chunk->{label});
 
 			if ($chunk->{style} eq '>') {
-				if ($label ne $target) {
-					$str .= "$label \\footnote{$label: \\url{$target}}";
-				} else {
-					$str .= "\\url{$target}";
-				}
+				$str .= "\\href{$target}{$label}";
 
 			} elsif ($chunk->{style} eq '=') {
 				$str .= "\\includegraphics{$target}";
@@ -149,6 +146,7 @@ sub dump_preformatted {
 	return "{\\tt\\obeylines $str}\n";
 }
 
+# TODO: floating tables and table captions
 sub dump_table {
 	my ($self, $table, %opts) = @_;
 
@@ -261,9 +259,10 @@ sub construct_full_page {
 \\documentclass{$class}
 
 \\usepackage[utf8]{inputenc}
-\\usepackage{soul}
+\\usepackage{ulem}
 \\usepackage{hyperref}
-\\usepackage{url}
+
+\\normalem
 
 \\author{$opts{escaped_author}}
 \\title{$opts{escaped_title}}

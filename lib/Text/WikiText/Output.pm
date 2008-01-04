@@ -93,6 +93,10 @@ sub fill_in_link {
 		} elsif ($chunk->{target} =~ /^(\w+\.){1,}$RE_TLD(\/|$)/) {
 			$chunk->{style} = '>';
 
+		# section headings
+		} elsif ($chunk->{target} =~ /^[A-Za-z0-9_ -]+$/) {
+			$chunk->{style} = '#';
+
 		# whitespace in urls is bad
 		} elsif ($chunk->{target} =~ /\s/) {
 			$chunk->{style} = '#';
@@ -123,7 +127,7 @@ sub fill_in_link {
 			$chunk->{target} = "http://" . $chunk->{target};
 		}
 
-		if ($chunk->{target} =~ /\.$RE_TLD$/) {
+		if ($chunk->{style} eq '>' && $chunk->{target} =~ /^\w+:\/\/(\w+\.)$RE_TLD$/) {
 			$chunk->{target} .= '/';
 		}
 	}
