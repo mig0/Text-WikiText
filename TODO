@@ -1,0 +1,29 @@
+Bug fixes:
+
+  * fix parsing wikitext paragraphs like:
+    (hello)
+
+  * fix anchors for headings in utf-8, currently converted to underscores:
+      <a name='____'>
+
+New wanted features:
+
+  * support adding "class" to generated tags, like:
+    *bold string*{c1 c2}
+      <strong class="c1 c2">bold string</strong>
+    [url|label]{new-window}
+      <a href="url" class="new-window">label</a>
+
+  * support syntax for line-breakes inside paragraph, like:
+    line 1
+    /
+    line 2
+      <p>line 1<br />line 2</p>
+
+  * support hidden links, like:
+    [!url|label]
+      <a href="#" onclick="document.location.href='url'">
+
+  * support more convert() options to show short preview, like:
+    max_output_chars => 50, compact_flat_output => 1
+
