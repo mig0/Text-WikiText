@@ -14,16 +14,36 @@ New wanted features:
     [url|label]{new-window}
       <a href="url" class="new-window">label</a>
 
-  * support syntax for line-breakes inside paragraph, like:
+  * support syntax for line-breaks inside paragraph, like:
     line 1
-    /
+    \br
     line 2
-      <p>line 1<br />line 2</p>
+    \n\n
+    line 3
+      <p>line 1<br />line 2<br /><br />line 3</p>
+
+  * possibly "\" can be a special char inside paragraph when starts line:
+    something
+    \
+    else
+      something
+      else
+
+    something
+    \nbsp\nbsp
+    else
+      something&nbsp;&nbsp;else
 
   * support hidden links, like:
     [!url|label]
-      <a href="#" onclick="document.location.href='url'">
+      <a href="#" onclick="document.location.href='url'">label</a>
 
   * support more convert() options to show short preview, like:
     max_output_chars => 50, compact_flat_output => 1
+
+  * add named sections:
+    #Logical Name
+      <a name="Logical_Name" />
+    and support convert(section => "NAME") and --section "[!]NAME[|NAME]".
+    The default unnamed section is "". Syntax to close section: "#/NAME".
 
